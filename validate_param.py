@@ -1,7 +1,7 @@
 # coding: utf-8
 import caffe
 import numpy as np
-import scipy as sio
+import scipy.io as sio
 
 root = 'F:\caffe-master\exp_orz'
 model_def_d = root + '\hsi_deploy.prototxt'
@@ -26,7 +26,7 @@ ip1_o_b = net_o.params['ip1'][1].data
 ip2_o_w = net_o.params['ip2'][0].data
 ip2_o_b = net_o.params['ip2'][1].data
 
-# sio.savemat(root + 'Deploy_params.mat', {'conv1_w': conv1_d_w, 'conv1_b': conv1_d_b, 'ip1_w': ip1_d_w, 'ip1_b': ip1_d_b, 'ip2_w': ip2_d_w, 'ip2_b': ip2_d_b})
+sio.savemat(root + '\Deploy_params.mat', {'conv1_w': conv1_d_w, 'conv1_b': conv1_d_b, 'ip1_w': ip1_d_w, 'ip1_b': ip1_d_b, 'ip2_w': ip2_d_w, 'ip2_b': ip2_d_b})
 # sio.savemat(root + 'original_params.mat', {'conv1_w': conv1_o_w, 'conv1_b': conv1_o_b, 'ip1_w': ip1_o_w, 'ip1_b': ip1_o_b, 'ip2_w': ip2_o_w, 'ip2_b': ip2_o_b})
 
 if (conv1_d_w == conv1_o_w).all():
