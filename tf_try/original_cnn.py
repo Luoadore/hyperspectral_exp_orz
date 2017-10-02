@@ -19,7 +19,7 @@ NUM_CLASSES = 10
 #hyperspectral bands
 BANDS_SIZE = 176 
 
-def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, mpool_uints, fc_uints):
+def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
     """Build the model up to where it may be used for inference.
     
     Args:
@@ -27,7 +27,6 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, mpool_uints, fc_
         conv1_units: Size of the convolution layer
         conv1_kernel: kernel size, which sharing same weights
         conv1_stride: stride size
-        mpool_units: Size of the max pooling layer
         fc_units:Size of the fully connection layer
     
     Returns:
@@ -76,7 +75,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, mpool_uints, fc_
         
     return softmax_re
     
-def loss_acc(softmax_re, labels):
+def loss(softmax_re, labels):
     """Calculates the loss.
     
     Args:
