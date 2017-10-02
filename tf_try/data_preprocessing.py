@@ -9,6 +9,7 @@ import numpy as np
 from random import shuffle
 import tensorflow as tf
 import original_cnn as oc
+import math
 
 def extract_data(data_file, labels_file, neighbor):
     """The original data will be convert into n-neighbors label with all its bands information(value).
@@ -93,7 +94,7 @@ def extract_data(data_file, labels_file, neighbor):
                 
     return data_list
 
-def onehotlabel(labels):
+def onehot_label(labels):
     """To transfer labels into one-hot values.
     
     Arg:
@@ -107,20 +108,44 @@ def onehotlabel(labels):
     indices = tf.expand_dims(tf.range(0, data_size), 1)
     concated = tf.concat(1, [indices, labels])
     onehot_labels = tf.sparse_to_dense(concated, tf.pack([data_size, oc.NUM_CLASSES]), 1.0, 0.0)
+    
     return onehot_labels
 
-def shuffling(data_set):
+def shuffling1(data_set):
     """Rewrite the shuffle function.
     
     Args:
-         data_set: Original data set, from extract_data().
+         data_set: Original data set, numpy darray, len(data_set) repersents its label, len(data_set[i]) repersent the numbers of one class, from extract_data().
    
     Return:
          data_set: Shuffled data.
     """
     for eachclass in data_set:
-        shuffle(eachlist)
+        shuffle(eachclass)
+    
     return data_set
+    
+def shuffling2(data_set, label_set):
+    """Rewrite the shuffle function. The data is ordered according to the category, which need to transfrom into out-of-order data set for train net model.
+    
+    Args:
+        data_set: Data numpy darray, from load_data()
+        label_set: Label set, from load_data()
+        
+    Return:
+        shuffled_data: Out-of-order class data
+        shuffled_label: Corresponding label.
+    """
+    num = len(label_set)
+    index = np.linspace(0, num - 1, num)
+    index = shuffle(index)
+    shuffled_data = []
+    shuffled_label = []
+    for i in range(index):
+        shuffled_data.append(data_set[i])
+        shuffled_label.append(label_set[i])
+    
+    return shuffled_data, shuffled_label
     
 def load_data(dataset, ratio):
     """Load percific train data set and test data set according to ratio.
@@ -131,13 +156,37 @@ def load_data(dataset, ratio):
     
     Return:
         train_data: Numpy darray, train data set value
-        train_label: Numpy darray, train label
+        train_label_onehot: Numpy darray, train label
         test_data: Numpy darray, train data set value
-        test_label: Numpy darray, test label
+        test_label_onehot: Numpy darray, test label
     """
     data_num = 0
     for eachclass in dataset:
         data_num += len(eachclass)
+    train_data = []
+    train_label = []
+    train_label_onehot = []
+    test_data = []
+    test_label = []
+    test_label_onehot = []
+    shuffle_data = shuffling1(dataset)
+    for classes, eachclass in enumerate(shuffle_data):
+        trainingNumber = int(math.ceil(len(eachclass) * int(ratio)) / 100.0)
+        testingNumber = int(len(eachclass) - trainingNumber)
+        for i in range(trainingNumber):
+            train_data.append(eachclass[i])
+            train_label.append(classes)
+        for i in range(testingNumber[i]):
+            test_data.append(eachclass[trainingNumber - i])
+            test_label.append(classes)
+        #transform int label into one-hot values
+        train_label = onehot_label(train_label)
+        train_label_onehot.append(train_label)
+        test_label = onehot_label(test_label)
+        test_label_onehot.append(test_label)
+        
+    #shuffle all the data set
+    train_data, train_label_onehot = shuffling2(train_data, train_label)
+    test_data, test_label_onehot = shuffling2(test_data, test_label)
     
-    #transform int label into one-hot values
-    
+    return train_data, train_label_onehot, test_data, test_label_onehot
