@@ -29,7 +29,8 @@ def extract_data(data_file, labels_file, neighbor):
     labels = label['ClsID']
     classes = np.max(labels)
     print('there are ' + str(classes) + 'class in the data set.')
-    rows, cols = labels.shape()
+    print(labels.shape)
+    rows, cols = labels.shape
     
     data_list = []
     for mark in range(classes):
@@ -176,7 +177,7 @@ def load_data(dataset, ratio):
         for i in range(trainingNumber):
             train_data.append(eachclass[i])
             train_label.append(classes)
-        for i in range(testingNumber[i]):
+        for i in range(testingNumber):
             test_data.append(eachclass[trainingNumber - i])
             test_label.append(classes)
         #transform int label into one-hot values
