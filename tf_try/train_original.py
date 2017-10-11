@@ -23,7 +23,6 @@ flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.
 flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
 flags.DEFINE_string('train_dir', 'F:\hsi_result', 'The train result save file.')
 
-
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
     
@@ -119,6 +118,9 @@ def run_training():
     #Get the sets of data
     data_set = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
     train_data, train_label, test_data, test_label = dp.load_data(data_set, FLAGS.ratio)
+    #transform int label into one-hot values
+    train_label = onehot_label(train_label)
+    test_label = onehot_label(test_label)
     
     with tf.Graph().as_default():
         #Generate placeholders
@@ -162,7 +164,7 @@ def run_training():
                 #Print status to stdout
                 print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
                 #Update the events file
-                summary_str = sess.run(summary_op, feed_dice = feed_dict)
+                summary_str = sess.run(summary_op, feed_dict = feed_dict)
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
                 
