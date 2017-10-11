@@ -7,9 +7,9 @@
 import scipy.io as sio
 import numpy as np
 from random import shuffle
-import tensorflow as tf
-import original_cnn as oc
+import random
 import math
+from sklearn import preprocessing as sp
 
 def extract_data(data_file, labels_file, neighbor):
     """The original data will be convert into n-neighbors label with all its bands information(value).
@@ -28,7 +28,7 @@ def extract_data(data_file, labels_file, neighbor):
     data_o = data['DataSet']
     labels = label['ClsID']
     classes = np.max(labels)
-    print('there are ' + str(classes) + 'class in the data set.')
+    print('there are ' + str(classes) + ' class in the data set.')
     print(labels.shape)
     rows, cols = labels.shape
     
@@ -86,31 +86,37 @@ def extract_data(data_file, labels_file, neighbor):
                         data_2 = np.append(data3, data4)
                         data_3 = np.append(data_1, data_2)
                         data_4 = np.append(data_3, center_data)
-                        data_5 = np.appemd(data5, data6)
+                        data_5 = np.append(data5, data6)
                         data_6 = np.append(data7, data8)
                         data_7 = np.append(data_4, data_5)
                         data_temp = np.append(data_7, data_6)
                 
                 data_list[label - 1].append(data_temp)
-                
+    
+    print('Extract data done.')
     return data_list
 
-def onehot_label(labels):
+def onehot_label(labels, num_class):
     """To transfer labels into one-hot values.
-    
+
     Arg:
         labels: Original label set.
-    
+        num_class: Classes of data.
+
     Return:
         onehot_labels: One-hot labels to fit in network.
     """
-    data_size = tf.size(labels)
-    labels = tf.expand_dims(labels, 1)
-    indices = tf.expand_dims(tf.range(0, data_size), 1)
-    concated = tf.concat(1, [indices, labels])
-    onehot_labels = tf.sparse_to_dense(concated, tf.pack([data_size, oc.NUM_CLASSES]), 1.0, 0.0)
-    
-    return onehot_labels
+    #data_size = tf.size(labels)
+    #labels = tf.expand_dims(labels, 1)
+    #indices = tf.expand_dims(tf.range(0, data_size), 1)
+    #concated = tf.concat([indices, labels], 1)
+    #onehot_labels = tf.sparse_to_dense(concated, tf.stack([data_size, oc.NUM_CLASSES]), 1.0, 0.0)
+    enc = sp.OneHotEncoder(n_values = [num_class])
+    enc.fit([[random.randint(0, num_class - 1)], [random.randint(0, num_class - 1]])
+    enc.transform(labels).toarray()
+    print('One hot label transformed done.')
+
+    return labels
 
 def shuffling1(data_set):
     """Rewrite the shuffle function.
@@ -123,7 +129,8 @@ def shuffling1(data_set):
     """
     for eachclass in data_set:
         shuffle(eachclass)
-    
+    print('Shuffling1 done.')
+
     return data_set
     
 def shuffling2(data_set, label_set):
@@ -138,13 +145,13 @@ def shuffling2(data_set, label_set):
         shuffled_label: Corresponding label.
     """
     num = len(label_set)
-    index = np.linspace(0, num - 1, num)
-    index = shuffle(index)
-    shuffled_data = []
-    shuffled_label = []
-    for i in range(index):
-        shuffled_data.append(data_set[i])
-        shuffled_label.append(label_set[i])
+    print(num)
+    index = np.arange(num)
+    shuffle(index)
+
+    shuffled_data = data_set[index[0]]
+    shuffled_label = label_set[index[0]]
+    print('Shuffling2 done.')
     
     return shuffled_data, shuffled_label
     
@@ -157,19 +164,18 @@ def load_data(dataset, ratio):
     
     Return:
         train_data: Numpy darray, train data set value
-        train_label_onehot: Numpy darray, train label
+        train_label: Numpy darray, train label
         test_data: Numpy darray, train data set value
-        test_label_onehot: Numpy darray, test label
+        test_label: Numpy darray, test label
     """
     data_num = 0
     for eachclass in dataset:
         data_num += len(eachclass)
+    print('There are ' + str(data_num) + ' examples in data set.')
     train_data = []
     train_label = []
-    train_label_onehot = []
     test_data = []
     test_label = []
-    test_label_onehot = []
     shuffle_data = shuffling1(dataset)
     for classes, eachclass in enumerate(shuffle_data):
         trainingNumber = int(math.ceil(len(eachclass) * int(ratio)) / 100.0)
@@ -180,14 +186,10 @@ def load_data(dataset, ratio):
         for i in range(testingNumber):
             test_data.append(eachclass[trainingNumber - i])
             test_label.append(classes)
-        #transform int label into one-hot values
-        train_label = onehot_label(train_label)
-        train_label_onehot.append(train_label)
-        test_label = onehot_label(test_label)
-        test_label_onehot.append(test_label)
         
     #shuffle all the data set
-    train_data, train_label_onehot = shuffling2(train_data, train_label)
-    test_data, test_label_onehot = shuffling2(test_data, test_label)
-    
-    return train_data, train_label_onehot, test_data, test_label_onehot
+    train_data, train_label_on = shuffling2(train_data, train_label)
+    test_data, test_label = shuffling2(test_data, test_label)
+    print('Load data.')
+
+    return train_data, train_label, test_data, test_label
