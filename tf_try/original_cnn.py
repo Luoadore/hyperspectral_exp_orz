@@ -16,7 +16,7 @@ import tensorflow as tf
 import math
 
 # labels
-NUM_CLASSES = 10
+NUM_CLASSES = 13
 # hyperspectral bands
 BANDS_SIZE = 176
 
@@ -36,11 +36,11 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
     """
     # conv1
     with tf.name_scope('conv1'):
-        weights = tf.Varibale(
+        weights = tf.Variable(
             tf.truncated_normal([1, conv1_kernel, 1, conv1_uints],
                                 stddev=1.0 / math.sqrt(float(conv1_uints))),
             name='weights')
-        biases = tf.Varibale(tf.zeros(conv1_uints),
+        biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
         x_data = tf.reshape(dataset, [-1, conv1_kernel, 1, 1])
         conv1 = tf.nn.relu(tf.nn.conv2d(x_data, weights,
@@ -56,22 +56,22 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
     # fc
     with tf.name_scope('fc'):
         input_uints = (BANDS_SIZE - conv1_kernel + 1) / 2
-        weights = tf.Varibale(
-            tf.turncated_normal([input_uints, fc_uints],
+        weights = tf.Variable(
+            tf.truncated_normal([input_uints, fc_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
             name='weights')
-        biases = tf.Varibale(tf.zeros([fc_uints]),
+        biases = tf.Variable(tf.zeros([fc_uints]),
                              name='biases')
         mpool_flat = tf.reshape(mpool, [-1, input_uints])
         fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
 
     # softmax regression
     with tf.name_scope('softmax_re'):
-        weights = tf.Varibale(
+        weights = tf.Variable(
             tf.truncated_normal([fc_uints, NUM_CLASSES],
                                 stddev=1.0 / math.sqrt(float(fc_uints))),
             name='weights')
-        biases = tf.Varibale(tf.zeros([NUM_CLASSES]),
+        biases = tf.Variable(tf.zeros([NUM_CLASSES]),
                              name='biases')
         softmax_re = tf.nn.softmax(tf.matmul(fc, weights) + biases)
 
@@ -128,7 +128,7 @@ def training(loss, learning_rate):
     """
 
     # Add a scalar summary for the snapshot loss. Creates a summarizer to track the loss over time in TensorBoard.
-    tf.scalar_summary(loss.op.name, loss)
+    tf.summary.scalar(loss.op.name, loss)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     global_step = tf.Variable(0, name='global_step', trainable=False)
     train_op = optimizer.minimize(loss, global_step=global_step)
