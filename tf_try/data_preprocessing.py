@@ -112,11 +112,14 @@ def onehot_label(labels, num_class):
     #concated = tf.concat([indices, labels], 1)
     #onehot_labels = tf.sparse_to_dense(concated, tf.stack([data_size, oc.NUM_CLASSES]), 1.0, 0.0)
     enc = sp.OneHotEncoder(n_values = [num_class])
-    enc.fit([[random.randint(0, num_class - 1)], [random.randint(0, num_class - 1]])
-    enc.transform(labels).toarray()
+    enc.fit([[num_class - 1], [random.randint(0, num_class - 1)]])
+    onehot_labels = []
+    print(enc.feature_indices_)
+    for i in range(len(labels)):
+        onehot_labels.append(enc.transform([[labels[i]]]).toarray().reshape(num_class))
     print('One hot label transformed done.')
 
-    return labels
+    return onehot_labels
 
 def shuffling1(data_set):
     """Rewrite the shuffle function.
@@ -148,9 +151,12 @@ def shuffling2(data_set, label_set):
     print(num)
     index = np.arange(num)
     shuffle(index)
+    shuffled_data = []
+    shuffled_label = []
+    for i in range(num):
+        shuffled_data.append(data_set[index[i]])
+        shuffled_label.append(label_set[index[i]])
 
-    shuffled_data = data_set[index[0]]
-    shuffled_label = label_set[index[0]]
     print('Shuffling2 done.')
     
     return shuffled_data, shuffled_label
@@ -180,13 +186,16 @@ def load_data(dataset, ratio):
     for classes, eachclass in enumerate(shuffle_data):
         trainingNumber = int(math.ceil(len(eachclass) * int(ratio)) / 100.0)
         testingNumber = int(len(eachclass) - trainingNumber)
+        #print('the ' + str(classes) +' class has ' + str(trainingNumber) + ' training examples and ' + str(testingNumber) + ' testing examples.')
         for i in range(trainingNumber):
             train_data.append(eachclass[i])
             train_label.append(classes)
         for i in range(testingNumber):
-            test_data.append(eachclass[trainingNumber - i])
+            test_data.append(eachclass[trainingNumber + i])
             test_label.append(classes)
-        
+
+    print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
+    print('load test: ' + str(len(test_data)) + ', ' + str(len(test_label)))
     #shuffle all the data set
     train_data, train_label_on = shuffling2(train_data, train_label)
     test_data, test_label = shuffling2(test_data, test_label)
