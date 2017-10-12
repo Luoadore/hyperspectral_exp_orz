@@ -118,9 +118,13 @@ def run_training():
     #Get the sets of data
     data_set = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
     train_data, train_label, test_data, test_label = dp.load_data(data_set, FLAGS.ratio)
+    print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
+    print('test label length:' + str(len(test_label)) + ', test data length: ' + str(len(test_data)))
     #transform int label into one-hot values
-    train_label = onehot_label(train_label)
-    test_label = onehot_label(test_label)
+    print('train: ')
+    train_label = dp.onehot_label(train_label, oc.NUM_CLASSES)
+    print('test: ')
+    test_label = dp.onehot_label(test_label, oc.NUM_CLASSES)
     
     with tf.Graph().as_default():
         #Generate placeholders
@@ -134,7 +138,7 @@ def run_training():
         #Add thp Op to compare the loss to the labels
         correct = oc.acc(softmax, label_placeholder)
         #Build the summary operation based on the TF collection of Summaries
-        summary_op = tf.merge_all_summaries()
+        summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
         init = tf.initialize_all_variables()
         #Create a saver for writing traing checkpoints
@@ -143,7 +147,7 @@ def run_training():
         #Create a session for training
         sess = tf.Session()
         #Instantiate a SummaryWriter to output summaries and the Graph
-        summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph)
+        summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
         
         #Run the Op to initialize the variables
         sess.run(init)
