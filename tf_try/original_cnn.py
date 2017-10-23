@@ -42,20 +42,25 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             name='weights')
         biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
-        x_data = tf.reshape(dataset, [-1, conv1_kernel, 1, 1])
-        conv1 = tf.nn.relu(tf.nn.conv2d(x_data, weights,
+        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE, 1])  #这里注意之后邻域变化需要修改band size的值
+        print(x_data.get_shape())
+        conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
                                         strides=[1, conv1_stride, conv1_stride, 1],
                                         padding='VALID'))
 
         # mpool
     with tf.name_scope('mpool'):
-        mpool = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1],
-                               strides=[1, 2, 2, 1],
+        mpool = tf.nn.max_pool(conv1, ksize=[1, 1, 2, 1],
+                               strides=[1, 1, 2, 1],
                                padding='VALID')
 
     # fc
     with tf.name_scope('fc'):
-        input_uints = (BANDS_SIZE - conv1_kernel + 1) / 2
+        #input_uints = int((BANDS_SIZE - conv1_kernel + 1) / 2)
+        print(mpool.get_shape())
+        x = mpool.get_shape()[2].value
+        y = mpool.get_shape()[3].value
+        input_uints = x * y
         weights = tf.Variable(
             tf.truncated_normal([input_uints, fc_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
@@ -91,8 +96,10 @@ def loss(softmax_re, labels):
 
     # loss
     with tf.name_scope('loss'):
+
+        log_tf = tf.log(softmax_re, name = 'log_name')
         entroy = tf.reduce_mean(
-            -tf.reduce_sum(labels * tf.log(softmax_re),
+            -tf.reduce_sum(labels * log_tf,
                            reduction_indices=[1]))
 
     return entroy
@@ -128,9 +135,10 @@ def training(loss, learning_rate):
     """
 
     # Add a scalar summary for the snapshot loss. Creates a summarizer to track the loss over time in TensorBoard.
-    tf.summary.scalar(loss.op.name, loss)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    global_step = tf.Variable(0, name='global_step', trainable=False)
-    train_op = optimizer.minimize(loss, global_step=global_step)
+    with tf.name_scope('training'):
+        tf.summary.scalar(loss.op.name, loss)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+        global_step = tf.Variable(0, name='global_step', trainable=False)
+        train_op = optimizer.minimize(loss, global_step=global_step)
 
     return train_op
