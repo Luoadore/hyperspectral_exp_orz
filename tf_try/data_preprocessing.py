@@ -148,7 +148,6 @@ def shuffling2(data_set, label_set):
         shuffled_label: Corresponding label.
     """
     num = len(label_set)
-    print(num)
     index = np.arange(num)
     shuffle(index)
     shuffled_data = []
@@ -188,10 +187,10 @@ def load_data(dataset, ratio):
         testingNumber = int(len(eachclass) - trainingNumber)
         #print('the ' + str(classes) +' class has ' + str(trainingNumber) + ' training examples and ' + str(testingNumber) + ' testing examples.')
         for i in range(trainingNumber):
-            train_data.append(eachclass[i])
+            train_data.append(eachclass[i] / 65535.0)
             train_label.append(classes)
         for i in range(testingNumber):
-            test_data.append(eachclass[trainingNumber + i])
+            test_data.append(eachclass[trainingNumber + i] / 65535.0)
             test_label.append(classes)
 
     print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
