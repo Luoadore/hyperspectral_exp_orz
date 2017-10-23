@@ -10,7 +10,7 @@ import data_preprocessing as dp
 #Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.001, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24, 'Length of kernel in conv1.')
@@ -34,7 +34,7 @@ def placeholder_inputs(batch_size):
         labels_placeholder: Labels placeholder
     """
     data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE))
-    label_placeholder = tf.placeholder(tf.int32, shape = (batch_size, oc.NUM_CLASSES))
+    label_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.NUM_CLASSES))
     
     return data_placeholder, label_placeholder
     
@@ -54,14 +54,14 @@ def next_batch(batch_size, num_step, data_set, label_set):
     data_size = len(data_set)
     num_per_epoch = data_size // batch_size
     remainder = num_step % num_per_epoch
-    if remainder == 0:
-        data_set, label_set = dp.shuffling2(data_set, label_set)
+    #if remainder == 0:
+    #data_set, label_set = dp.shuffling2(data_set, label_set)
     
     start_index = remainder * batch_size
     end_index = min(start_index + batch_size, data_size)
-    batch_data = data_set[start_index, end_index]
-    batch_label = label_set[start_index, end_index]
-    yield batch_data, batch_label
+    batch_data = data_set[start_index : end_index]
+    batch_label = label_set[start_index : end_index]
+    return batch_data, batch_label
     
 def fill_feed_dict(num_step, data_set, label_set, data_pl, label_pl):
     """Fills the feed_dict for training the given step.
@@ -108,9 +108,10 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
     num_examples = len(label_set)
     steps_per_epoch = num_examples // FLAGS.batch_size
     for step in range(steps_per_epoch):
-        feed_dict = fill_feed_dict(data_set, label_set, data_placeholder, label_placeholder)
+        feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
         true_count += sess.run(eval_correct, feed_dict = feed_dict)
-    precision = true_count / num_examples
+    precision = true_count / steps_per_epoch
+    true_count = true_count * FLAGS.batch_size
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
     
 def run_training():
@@ -140,7 +141,7 @@ def run_training():
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
         #Create a saver for writing traing checkpoints
         saver = tf.train.Saver()
         
@@ -153,13 +154,15 @@ def run_training():
         sess.run(init)
         
         #Start the training loop
-        for step in range(FLAGS.max_step):
+        for step in range(FLAGS.max_steps):
             start_time = time.time()
             
             feed_dict = fill_feed_dict(step, train_data, train_label, data_placeholder, label_placeholder)
             
             #Run one step of the model
-            _, loss_value = sess.run([train_op, loss_entroy], feed_dict = feed_dict)
+            _, loss_value, softmax_value = sess.run([train_op, loss_entroy, softmax], feed_dict = feed_dict)
+            #print('**********')
+            #print(softmax_value[1])
             
             duration = time.time() - start_time
 
