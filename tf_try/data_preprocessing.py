@@ -7,7 +7,6 @@
 import scipy.io as sio
 import numpy as np
 from random import shuffle
-import random
 import math
 from sklearn import preprocessing as sp
 
@@ -40,7 +39,7 @@ def extract_data(data_file, labels_file, neighbor):
         for j in range(cols):
             label = labels[i, j]
             if label != 0:
-                data_temp = data_o[i,j]
+                data_temp = data_o[i, j]
                 if neighbor > 0:
                     center_data = data_temp
                     ##################################
@@ -59,9 +58,9 @@ def extract_data(data_file, labels_file, neighbor):
                     data8 = []
                     
                     #judgment standard, how to choose neighbors' coordinates
-                    lessThan = lambda x : x - 1 if x > 0 else 0
-                    greaterThan_row = lambda x : x + 1 if x < rows - 1 else rows - 1
-                    greaterThan_col = lambda x : x + 1 if x <cols - 1 else cols - 1
+                    lessThan = lambda x: x - 1 if x > 0 else 0
+                    greaterThan_row = lambda x: x + 1 if x < rows - 1 else rows - 1
+                    greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
                     
                     if neighbor == 4:
                         data2 = data_o[lessThan(i), j]
@@ -72,7 +71,8 @@ def extract_data(data_file, labels_file, neighbor):
                         data_2 = np.append(data_1, center_data)
                         data_3 = np.append(data5, data7)
                         data_temp = np.append(data_2, data_3)
-                        
+                        print('4 neighbors extract done.')
+
                     if neighbor == 8:
                         data1 = data_o[lessThan(i), lessThan(j)]
                         data2 = data_o[lessThan(i), j]
@@ -90,6 +90,7 @@ def extract_data(data_file, labels_file, neighbor):
                         data_6 = np.append(data7, data8)
                         data_7 = np.append(data_4, data_5)
                         data_temp = np.append(data_7, data_6)
+                        print('8 neighbors extract done.')
                 
                 data_list[label - 1].append(data_temp)
     
@@ -111,12 +112,15 @@ def onehot_label(labels, num_class):
     #indices = tf.expand_dims(tf.range(0, data_size), 1)
     #concated = tf.concat([indices, labels], 1)
     #onehot_labels = tf.sparse_to_dense(concated, tf.stack([data_size, oc.NUM_CLASSES]), 1.0, 0.0)
-    enc = sp.OneHotEncoder(n_values = [num_class])
-    enc.fit([[num_class - 1], [random.randint(0, num_class - 1)]])
-    onehot_labels = []
-    print(enc.feature_indices_)
+    #enc = sp.OneHotEncoder(n_values = [num_class])
+    #enc.fit([[num_class - 1], [random.randint(0, num_class - 1)]])
+    #onehot_labels = []
+    #print(enc.feature_indices_)
+    #for i in range(len(labels)):
+    #    onehot_labels.append(enc.transform([[labels[i]]]).toarray().reshape(num_class))
+    onehot_labels = np.zeros((len(labels), num_class), float)
     for i in range(len(labels)):
-        onehot_labels.append(enc.transform([[labels[i]]]).toarray().reshape(num_class))
+        onehot_labels[i][labels[i]] = 1
     print('One hot label transformed done.')
 
     return onehot_labels
@@ -157,7 +161,7 @@ def shuffling2(data_set, label_set):
         shuffled_label.append(label_set[index[i]])
 
     print('Shuffling2 done.')
-    
+
     return shuffled_data, shuffled_label
     
 def load_data(dataset, ratio):
@@ -187,17 +191,22 @@ def load_data(dataset, ratio):
         testingNumber = int(len(eachclass) - trainingNumber)
         #print('the ' + str(classes) +' class has ' + str(trainingNumber) + ' training examples and ' + str(testingNumber) + ' testing examples.')
         for i in range(trainingNumber):
-            train_data.append(eachclass[i] / 65535.0)
+            train_data.append(eachclass[i])
             train_label.append(classes)
         for i in range(testingNumber):
-            test_data.append(eachclass[trainingNumber + i] / 65535.0)
+            test_data.append(eachclass[trainingNumber + i])
             test_label.append(classes)
 
     print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
     print('load test: ' + str(len(test_data)) + ', ' + str(len(test_label)))
     #shuffle all the data set
-    train_data, train_label_on = shuffling2(train_data, train_label)
+    train_data, train_label = shuffling2(train_data, train_label)
     test_data, test_label = shuffling2(test_data, test_label)
+    scaler = sp.StandardScaler().fit(train_data)
+    train_data = scaler.transform(train_data)
+    test_data = scaler.transform(test_data)
+    #print('train data normalize:')
+    #print(train_data[0])
     print('Load data.')
 
     return train_data, train_label, test_data, test_label
