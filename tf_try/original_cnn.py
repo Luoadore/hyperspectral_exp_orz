@@ -36,15 +36,19 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
     """
     # conv1
     with tf.name_scope('conv1'):
-        weights = tf.Variable(
+        conv1_weights = tf.Variable(
             tf.truncated_normal([1, conv1_kernel, 1, conv1_uints],
                                 stddev=1.0 / math.sqrt(float(conv1_uints))),
             name='weights')
         biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
-        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE, 1])  #这里注意之后邻域变化需要修改band size的值
+        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE * 9, 1])  #这里注意之后邻域变化需要修改band size的值
+        print(dataset.get_shape())
         print(x_data.get_shape())
-        conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
+        #conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
+                                        #strides=[1, conv1_stride, conv1_stride, 1],
+                                        #padding='VALID'))
+        conv1 = tf.sigmoid(biases + tf.nn.conv2d(x_data, conv1_weights,
                                         strides=[1, conv1_stride, conv1_stride, 1],
                                         padding='VALID'))
 
@@ -61,26 +65,28 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
         x = mpool.get_shape()[2].value
         y = mpool.get_shape()[3].value
         input_uints = x * y
-        weights = tf.Variable(
+        fc_weights = tf.Variable(
             tf.truncated_normal([input_uints, fc_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
             name='weights')
         biases = tf.Variable(tf.zeros([fc_uints]),
                              name='biases')
         mpool_flat = tf.reshape(mpool, [-1, input_uints])
-        fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
+        #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
+        fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + biases)
 
     # softmax regression
     with tf.name_scope('softmax_re'):
-        weights = tf.Variable(
+        softmax_weights = tf.Variable(
             tf.truncated_normal([fc_uints, NUM_CLASSES],
                                 stddev=1.0 / math.sqrt(float(fc_uints))),
             name='weights')
         biases = tf.Variable(tf.zeros([NUM_CLASSES]),
                              name='biases')
-        softmax_re = tf.nn.softmax(tf.matmul(fc, weights) + biases)
-
-    return softmax_re
+        softmax_re = tf.nn.softmax(tf.matmul(fc, softmax_weights) + biases)
+        print('softmax size: hhhhhhhhhhh')
+        print(softmax_re.get_shape())
+    return softmax_re, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc
 
 
 def loss(softmax_re, labels):
@@ -136,7 +142,7 @@ def training(loss, learning_rate):
 
     # Add a scalar summary for the snapshot loss. Creates a summarizer to track the loss over time in TensorBoard.
     with tf.name_scope('training'):
-        tf.summary.scalar(loss.op.name, loss)
+        tf.summary.scalar('loss', loss)
         optimizer = tf.train.GradientDescentOptimizer(learning_rate)
         global_step = tf.Variable(0, name='global_step', trainable=False)
         train_op = optimizer.minimize(loss, global_step=global_step)
