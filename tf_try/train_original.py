@@ -6,18 +6,19 @@ import time
 import os.path
 import original_cnn as oc
 import data_preprocessing as dp
+import numpy as np
 
 #Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.001, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.3, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
-flags.DEFINE_integer('conv1_kernel', 24, 'Length of kernel in conv1.')
-flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
+flags.DEFINE_integer('conv1_kernel', 24 * 9, 'Length of kernel in conv1.')
+flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
-flags.DEFINE_integer('neighbor', 0, 'Neighbor of data option, including 0, 4 and 8.')
+flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
 flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
@@ -33,7 +34,7 @@ def placeholder_inputs(batch_size):
         data_placeholder: Data placeholder
         labels_placeholder: Labels placeholder
     """
-    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE))
+    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE * 9)) #记得这里修改BAND_SIZE的值
     label_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.NUM_CLASSES))
     
     return data_placeholder, label_placeholder
@@ -119,6 +120,7 @@ def run_training():
     #Get the sets of data
     data_set = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
     train_data, train_label, test_data, test_label = dp.load_data(data_set, FLAGS.ratio)
+    print(len(train_data[0]))
     print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
     print('test label length:' + str(len(test_label)) + ', test data length: ' + str(len(test_data)))
     #transform int label into one-hot values
@@ -126,18 +128,21 @@ def run_training():
     train_label = dp.onehot_label(train_label, oc.NUM_CLASSES)
     print('test: ')
     test_label = dp.onehot_label(test_label, oc.NUM_CLASSES)
-    
+    print('train_data: ' + str(np.max(train_data)))
+    print('train_data: ' + str(np.min(train_data)))
+
     with tf.Graph().as_default():
         #Generate placeholders
         data_placeholder, label_placeholder = placeholder_inputs(FLAGS.batch_size)
         #Build a Graph that computes predictions from the inference model
-        softmax = oc.inference(data_placeholder, FLAGS.conv1_uints, FLAGS.conv1_kernel, FLAGS.conv1_stride, FLAGS.fc_uints)
+        softmax, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc = oc.inference(data_placeholder, FLAGS.conv1_uints, FLAGS.conv1_kernel, FLAGS.conv1_stride, FLAGS.fc_uints)
         #Add to the Graph the Ops for loss calculation
         loss_entroy = oc.loss(softmax, label_placeholder)
         #Add to the Graph the Ops that calculate and apply gradients
         train_op = oc.training(loss_entroy, FLAGS.learning_rate)
         #Add thp Op to compare the loss to the labels
         correct = oc.acc(softmax, label_placeholder)
+        tf.summary.scalar('accuary', correct)
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
@@ -160,9 +165,26 @@ def run_training():
             feed_dict = fill_feed_dict(step, train_data, train_label, data_placeholder, label_placeholder)
             
             #Run one step of the model
-            _, loss_value, softmax_value = sess.run([train_op, loss_entroy, softmax], feed_dict = feed_dict)
-            #print('**********')
-            #print(softmax_value[1])
+            _, loss_value, softmax_value, conv1_weights_value, fc_weights_value, softmax_weights_value, conv1_output, mpool_output, fc_output \
+                = sess.run([train_op, loss_entroy, softmax, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc], feed_dict = feed_dict)
+
+            #print(np.shape(conv1_weights_value))
+            #print('input ************************************')
+            #print(train_data[0])
+            #print('conv1 weights ****************************')
+            #print(conv1_weights_value[0][0])
+            #print('conv1 output *****************************')
+            #print(conv1_output[0])
+            #print('mpool output *****************************')
+            #print(mpool_output[0 ])
+            #print('fc weights *******************************')
+            #print(fc_weights_value[0])
+            #print('fc output ********************************')
+            #print(fc_output[0])
+            #print('softmax weights **************************')
+            #print(softmax_weights_value[0])
+            #print('softmax ****************************')
+            #print(softmax_value[0])
             
             duration = time.time() - start_time
 
