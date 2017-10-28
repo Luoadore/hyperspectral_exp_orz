@@ -14,11 +14,11 @@ FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.3, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
-flags.DEFINE_integer('conv1_kernel', 24 * 9, 'Length of kernel in conv1.')
-flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
+flags.DEFINE_integer('conv1_kernel', 24 * 1, 'Length of kernel in conv1.')
+flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
-flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
+flags.DEFINE_integer('neighbor', 0, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
 flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
@@ -34,7 +34,7 @@ def placeholder_inputs(batch_size):
         data_placeholder: Data placeholder
         labels_placeholder: Labels placeholder
     """
-    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE * 9)) #记得这里修改BAND_SIZE的值
+    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
     label_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.NUM_CLASSES))
     
     return data_placeholder, label_placeholder
@@ -101,6 +101,9 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
         label_placeholder: The label placeholder
         data_set: The set of data to evaluate, from dp.load_data()
         label_set: The set of label to evaluate, from dp.load_data()
+
+    Return:
+        precision: The accuray of the test data set
         
     """
     
@@ -114,6 +117,8 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
     precision = true_count / steps_per_epoch
     true_count = true_count * FLAGS.batch_size
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
+
+    return precision
     
 def run_training():
     """Train net model."""
@@ -130,6 +135,10 @@ def run_training():
     test_label = dp.onehot_label(test_label, oc.NUM_CLASSES)
     print('train_data: ' + str(np.max(train_data)))
     print('train_data: ' + str(np.min(train_data)))
+
+    test_loss_steps = []
+    test_acc_steps = []
+    test_steps = []
 
     with tf.Graph().as_default():
         #Generate placeholders
@@ -201,12 +210,23 @@ def run_training():
             if(step + 1) % 1000 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_file = os.path.join(FLAGS.train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step = step)
+                #data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
+                #data_test_placeholder, label_test_placeholder = placeholder_inputs(len(test_label))
+                #feed_dict_test = {data_test_placeholder: test_data, label_test_placeholder: test_label,}
                 #Evaluate against the data set
                 print('Training Data Eval:')
-                do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label)
+                _ = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label)
                 print('Test Data Eval:')
-                do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label)
-                
+                test_acc = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label)
+                test_loss = sess.run(loss_entroy, feed_dict = feed_dict)
+                test_steps.append(step)
+                test_acc_steps.append(test_acc)
+                test_loss_steps.append(test_loss)
+
+    print('test loss: ' + str(test_loss_steps))
+    print('test acc: ' + str(test_acc_steps))
+    print('test step: ' + str(test_steps))
+
 def main(_):
     run_training()
     
