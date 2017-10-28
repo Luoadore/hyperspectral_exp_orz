@@ -42,7 +42,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             name='weights')
         biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
-        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE * 9, 1])  #这里注意之后邻域变化需要修改band size的值
+        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE, 1])  #这里注意之后邻域变化需要修改band size的值, * 1, 5, 9
         print(dataset.get_shape())
         print(x_data.get_shape())
         #conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
