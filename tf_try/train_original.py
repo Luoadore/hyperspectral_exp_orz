@@ -166,6 +166,8 @@ def run_training():
         
         #Run the Op to initialize the variables
         sess.run(init)
+
+        time_sum = 0
         
         #Start the training loop
         for step in range(FLAGS.max_steps):
@@ -201,13 +203,14 @@ def run_training():
             if step % 100 == 0:
                 #Print status to stdout
                 print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
+                time_sum = time_sum +  duration
                 #Update the events file
                 summary_str = sess.run(summary_op, feed_dict = feed_dict)
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
                 
             #Save a checkpoint and evaluate the model periodically
-            if(step + 1) % 1000 == 0 or (step + 1) == FLAGS.max_steps:
+            if(step + 1) % 100 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_file = os.path.join(FLAGS.train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step = step)
                 #data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
@@ -226,6 +229,7 @@ def run_training():
     print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
     print('test step: ' + str(test_steps))
+    print('总用时： ' + str(time_sum))
 
 def main(_):
     run_training()
