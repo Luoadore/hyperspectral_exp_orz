@@ -44,7 +44,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
     """
     # conv1
     with tf.name_scope('conv1'):
-        conv1_weights = tf.Variable(
+        weights = tf.Variable(
             tf.truncated_normal([1, conv1_kernel, 1, conv1_uints],
                                 stddev=1.0 / math.sqrt(float(conv1_uints))),
             name='weights')
@@ -55,44 +55,92 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
         #conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
                                         #strides=[1, conv1_stride, conv1_stride, 1],
                                         #padding='VALID'))
-        conv1 = tf.sigmoid(biases + tf.nn.conv2d(x_data, conv1_weights,
+        conv1 = tf.sigmoid(biases + tf.nn.conv2d(x_data, weights,
                                         strides=[1, conv1_stride, conv1_stride, 1],
                                         padding='VALID'))
+        print(conv1.get_shape())
 
-        # mpool
-    with tf.name_scope('mpool'):
-        mpool = tf.nn.max_pool(conv1, ksize=[1, 1, 2, 1],
-                               strides=[1, 1, 2, 1],
+    # reshape
+    with tf.name_scope('reshape'):
+        reshape = tf.reshape(conv1, [-1, conv1_uints, conv1_uints, 1])
+        print(reshape.get_shape())
+
+    # conv2
+    with tf.name_scope('conv2'):
+        weights = tf.Variable(
+            tf.truncated_normal([3, 3, 1, conv2_uints],
+                                stddev=1.0 / math.sqrt(float(conv2_uints))),
+            name='weights')
+        biases = tf.Variable(tf.zeros(conv2_uints),
+                             name='biases')
+        conv2 = tf.sigmoid(biases + tf.nn.conv2d(reshape, weights,
+                                        strides=[1, 1, 1, 1],
+                                        padding='VALID'))
+
+    # mpool
+    with tf.name_scope('mpool1'):
+        mpool1 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
                                padding='VALID')
 
-    # fc
-    with tf.name_scope('fc'):
+    # conv3
+    with tf.name_scope('conv3'):
+        weights = tf.Variable(
+            tf.truncated_normal([3, 3, conv2_uints, conv3_uints],
+                                stddev=1.0 / math.sqrt(float(conv3_uints))),
+            name='weights')
+        biases = tf.Variable(tf.zeros(conv3_uints),
+                             name='biases')
+        conv3 = tf.sigmoid(biases + tf.nn.conv2d(mpool1, weights,
+                                        strides=[1, 1, 1, 1],
+                                        padding='VALID'))
+
+    # mpool2
+    with tf.name_scope('mpool2'):
+        mpool2 = tf.nn.max_pool(conv3, ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='VALID')
+
+    # fc1
+    with tf.name_scope('fc1'):
         #input_uints = int((BANDS_SIZE - conv1_kernel + 1) / 2)
-        print(mpool.get_shape())
-        x = mpool.get_shape()[2].value
-        y = mpool.get_shape()[3].value
-        input_uints = x * y
-        fc_weights = tf.Variable(
-            tf.truncated_normal([input_uints, fc_uints],
+        print(mpool2.get_shape())
+        x = mpool2.get_shape()[2].value
+        y = mpool2.get_shape()[3].value
+        z = mpool2.get_shape()[1].value
+        input_uints = x * y * z
+        weights = tf.Variable(
+            tf.truncated_normal([input_uints, fc1_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
             name='weights')
-        biases = tf.Variable(tf.zeros([fc_uints]),
+        biases = tf.Variable(tf.zeros([fc1_uints]),
                              name='biases')
-        mpool_flat = tf.reshape(mpool, [-1, input_uints])
+        mpool_flat = tf.reshape(mpool2, [-1, input_uints])
         #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
-        fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + biases)
+        fc1 = tf.sigmoid(tf.matmul(mpool_flat, weights) + biases)
+
+    # fc2
+    with tf.name_scope('fc2'):
+        weights = tf.Variable(
+            tf.truncated_normal([fc1_uints, fc2_uints],
+                                stddev=1.0 / math.sqrt(float(fc1_uints))),
+            name='weights')
+        biases = tf.Variable(tf.zeros([fc2_uints]),
+                             name='biases')
+        #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
+        fc2 = tf.sigmoid(tf.matmul(fc1, weights) + biases)
 
     # softmax regression
     with tf.name_scope('softmax_re'):
-        softmax_weights = tf.Variable(
-            tf.truncated_normal([fc_uints, NUM_CLASSES],
-                                stddev=1.0 / math.sqrt(float(fc_uints))),
+        weights = tf.Variable(
+            tf.truncated_normal([fc2_uints, NUM_CLASSES],
+                                stddev=1.0 / math.sqrt(float(fc2_uints))),
             name='weights')
         biases = tf.Variable(tf.zeros([NUM_CLASSES]),
                              name='biases')
-        softmax_re = tf.nn.softmax(tf.matmul(fc, softmax_weights) + biases)
+        softmax_re = tf.nn.softmax(tf.matmul(fc2, weights) + biases)
 
-    return softmax_re, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc
+    return softmax_re
 
 
 def loss(softmax_re, labels):
