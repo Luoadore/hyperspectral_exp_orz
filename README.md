@@ -30,3 +30,6 @@ Classification use Tensorflow.
     original_cnn: Original net model.
     test: Validate whether the data extract is correct with BPN net model.
     train_original: Train original method.
+    data_preprocess_pos: Data preprocessing increases save position information.
+    plotting: Plotting accuracy and loss curves verses iterations.
+    train_deep: Train deep net method.
