@@ -5,8 +5,10 @@ import tensorflow as tf
 import time
 import os.path
 import original_cnn as oc
-import data_preprocessing as dp
+import data_preprocess_pos as dp
 import numpy as np
+import math
+import scipy.io as sio
 
 #Basic model parameters as external flags
 flags = tf.app.flags
@@ -34,8 +36,8 @@ def placeholder_inputs(batch_size):
         data_placeholder: Data placeholder
         labels_placeholder: Labels placeholder
     """
-    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.BANDS_SIZE)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
-    label_placeholder = tf.placeholder(tf.float32, shape = (batch_size, oc.NUM_CLASSES))
+    data_placeholder = tf.placeholder(tf.float32, shape = (None, oc.BANDS_SIZE)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
+    label_placeholder = tf.placeholder(tf.float32, shape = (None, oc.NUM_CLASSES))
     
     return data_placeholder, label_placeholder
     
@@ -53,7 +55,7 @@ def next_batch(batch_size, num_step, data_set, label_set):
         batch_label: Next batch size correspoding label
     """
     data_size = len(data_set)
-    num_per_epoch = data_size // batch_size
+    num_per_epoch = math.ceil(data_size / batch_size)
     remainder = num_step % num_per_epoch
     #if remainder == 0:
     #data_set, label_set = dp.shuffling2(data_set, label_set)
@@ -62,6 +64,7 @@ def next_batch(batch_size, num_step, data_set, label_set):
     end_index = min(start_index + batch_size, data_size)
     batch_data = data_set[start_index : end_index]
     batch_label = label_set[start_index : end_index]
+    #print('取出的数据大小： ' + str(end_index - start_index))
     return batch_data, batch_label
     
 def fill_feed_dict(num_step, data_set, label_set, data_pl, label_pl):
@@ -91,7 +94,7 @@ def fill_feed_dict(num_step, data_set, label_set, data_pl, label_pl):
     
     return feed_dict
     
-def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, label_set):
+def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, label_set, softmax):
     """Runs one evaluation against the full epoch of data.
     
     Args:
@@ -101,30 +104,37 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
         label_placeholder: The label placeholder
         data_set: The set of data to evaluate, from dp.load_data()
         label_set: The set of label to evaluate, from dp.load_data()
+        softmax: Softmax layer output, use for calculating each sample's predicting label, from oc.inference()
 
     Return:
-        precision: The accuray of the test data set
+        precision: The accuray of the data set
+        prediction: The prediction of the data set
         
     """
     
     #And run one apoch of eval
     true_count = 0
     num_examples = len(label_set)
-    steps_per_epoch = num_examples // FLAGS.batch_size
+    predicition = []
+    steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
     for step in range(steps_per_epoch):
         feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
         true_count += sess.run(eval_correct, feed_dict = feed_dict)
+        softmax_value = sess.run(softmax, feed_dict = feed_dict)
+        predicition.extend(np.argmax(softmax_value, axis = 1))
     precision = true_count / steps_per_epoch
     true_count = true_count * FLAGS.batch_size
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
 
-    return precision
+    return precision, predicition
     
 def run_training():
     """Train net model."""
     #Get the sets of data
-    data_set = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
-    train_data, train_label, test_data, test_label = dp.load_data(data_set, FLAGS.ratio)
+    global prediction
+    data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
+    print('data position: ------' + str(data_pos))
+    train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
     print(len(train_data[0]))
     print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
     print('test label length:' + str(len(test_label)) + ', test data length: ' + str(len(test_data)))
@@ -139,6 +149,8 @@ def run_training():
     test_loss_steps = []
     test_acc_steps = []
     test_steps = []
+    train_prediction = []
+    test_prediction = []
 
     with tf.Graph().as_default():
         #Generate placeholders
@@ -150,7 +162,7 @@ def run_training():
         #Add to the Graph the Ops that calculate and apply gradients
         train_op = oc.training(loss_entroy, FLAGS.learning_rate)
         #Add thp Op to compare the loss to the labels
-        correct = oc.acc(softmax, label_placeholder)
+        pred, correct = oc.acc(softmax, label_placeholder)
         tf.summary.scalar('accuary', correct)
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
@@ -176,8 +188,7 @@ def run_training():
             feed_dict = fill_feed_dict(step, train_data, train_label, data_placeholder, label_placeholder)
             
             #Run one step of the model
-            _, loss_value, softmax_value, conv1_weights_value, fc_weights_value, softmax_weights_value, conv1_output, mpool_output, fc_output \
-                = sess.run([train_op, loss_entroy, softmax, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc], feed_dict = feed_dict)
+            _, loss_value = sess.run([train_op, loss_entroy], feed_dict = feed_dict)
 
             #print(np.shape(conv1_weights_value))
             #print('input ************************************')
@@ -216,12 +227,13 @@ def run_training():
                 #data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
                 #data_test_placeholder, label_test_placeholder = placeholder_inputs(len(test_label))
                 #feed_dict_test = {data_test_placeholder: test_data, label_test_placeholder: test_label,}
+                feed_dict_test = fill_feed_dict(step, test_data, test_label, data_placeholder, label_placeholder)
                 #Evaluate against the data set
                 print('Training Data Eval:')
-                _ = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label)
+                _, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
                 print('Test Data Eval:')
-                test_acc = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label)
-                test_loss = sess.run(loss_entroy, feed_dict = feed_dict)
+                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
+                test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
@@ -229,7 +241,18 @@ def run_training():
     print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
     print('test step: ' + str(test_steps))
+    print(train_prediction)
+    print('train prediction: ' + str(np.reshape(np.array(train_prediction), [1, len(train_label)])))
+    print('train label: ' + str(dp.decode_onehot_label(train_label, oc.NUM_CLASSES)))
+    print('test predicition: ' + str(np.reshape(np.array(test_prediction), [1, len(test_label)])))
+    print('test label: ' + str(dp.decode_onehot_label(test_label, oc.NUM_CLASSES)))
     print('总用时： ' + str(time_sum))
+
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
+                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
+                                                'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
+                                                'train_prediction': train_prediction, 'test_prediction': test_prediction})
+
 
 def main(_):
     run_training()
