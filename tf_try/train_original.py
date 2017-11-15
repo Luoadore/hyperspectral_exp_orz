@@ -14,12 +14,12 @@ import scipy.io as sio
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.3, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 1000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24 * 1, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
-flags.DEFINE_integer('batch_size', 100, 'Batch size.')
+flags.DEFINE_integer('batch_size', 400, 'Batch size.')
 flags.DEFINE_integer('neighbor', 0, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
@@ -122,8 +122,7 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
         true_count += sess.run(eval_correct, feed_dict = feed_dict)
         softmax_value = sess.run(softmax, feed_dict = feed_dict)
         predicition.extend(np.argmax(softmax_value, axis = 1))
-    precision = true_count / steps_per_epoch
-    true_count = true_count * FLAGS.batch_size
+    precision = true_count / num_examples
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
 
     return precision, predicition
