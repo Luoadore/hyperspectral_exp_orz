@@ -7,6 +7,7 @@ import os.path
 import deep_cnn as dc
 import data_preprocessing as dp
 import numpy as np
+import math
 
 #Basic model parameters as external flags
 flags = tf.app.flags
@@ -16,8 +17,9 @@ flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 153, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24 * 1, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
-flags.DEFINE_integer('conv2_uints', 64, 'Number of uints in convolutional layer.')
-flags.DEFINE_integer('conv3_uints', 128, 'Number of uints in convolutional layer.')
+flags.DEFINE_integer('conv2_uints', 32, 'Number of uints in convolutiona2 layer.')
+flags.DEFINE_integer('conv3_uints', 64, 'Number of uints in convolutiona3 layer.')
+flags.DEFINE_integer('conv4_uints', 64, 'Number of uints in convolutiona4 layer.')
 flags.DEFINE_integer('fc1_uints', 1024, 'Number of uints in fully connection layer one.')
 flags.DEFINE_integer('fc2_uints', 100, 'Number of uints in fully connection layer two.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
@@ -37,8 +39,8 @@ def placeholder_inputs(batch_size):
         data_placeholder: Data placeholder
         labels_placeholder: Labels placeholder
     """
-    data_placeholder = tf.placeholder(tf.float32, shape = (batch_size, dc.BANDS_SIZE)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
-    label_placeholder = tf.placeholder(tf.float32, shape = (batch_size, dc.NUM_CLASSES))
+    data_placeholder = tf.placeholder(tf.float32, shape = (None, dc.BANDS_SIZE * FLAGS.conv1_stride)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
+    label_placeholder = tf.placeholder(tf.float32, shape = (None, dc.NUM_CLASSES))
 
     return data_placeholder, label_placeholder
 
@@ -56,7 +58,7 @@ def next_batch(batch_size, num_step, data_set, label_set):
         batch_label: Next batch size correspoding label
     """
     data_size = len(data_set)
-    num_per_epoch = data_size // batch_size
+    num_per_epoch = math.ceil(data_size / batch_size)
     remainder = num_step % num_per_epoch
     #if remainder == 0:
     #data_set, label_set = dp.shuffling2(data_set, label_set)
@@ -113,12 +115,11 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
     #And run one apoch of eval
     true_count = 0
     num_examples = len(label_set)
-    steps_per_epoch = num_examples // FLAGS.batch_size
+    steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
     for step in range(steps_per_epoch):
         feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
         true_count += sess.run(eval_correct, feed_dict = feed_dict)
-    precision = true_count / steps_per_epoch
-    true_count = true_count * FLAGS.batch_size
+    precision = true_count / num_examples
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
 
     return precision
@@ -148,7 +149,7 @@ def run_training():
         data_placeholder, label_placeholder = placeholder_inputs(FLAGS.batch_size)
         #Build a Graph that computes predictions from the inference model
         softmax = dc.inference(data_placeholder, FLAGS.conv1_uints, FLAGS.conv1_kernel, FLAGS.conv1_stride,
-                               FLAGS.conv2_uints, FLAGS.conv3_uints, FLAGS.fc1_uints, FLAGS.fc2_uints)
+                               FLAGS.conv2_uints, FLAGS.conv3_uints, FLAGS.conv4_uints, FLAGS.fc1_uints, FLAGS.fc2_uints)
         #Add to the Graph the Ops for loss calculation
         loss_entroy = dc.loss(softmax, label_placeholder)
         #Add to the Graph the Ops that calculate and apply gradients
@@ -195,18 +196,19 @@ def run_training():
                 summary_writer.flush()
 
             #Save a checkpoint and evaluate the model periodically
-            if(step + 1) % 100 == 0 or (step + 1) == FLAGS.max_steps:
+            if(step + 1) % 1000 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_file = os.path.join(FLAGS.train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step = step)
                 #data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
                 #data_test_placeholder, label_test_placeholder = placeholder_inputs(len(test_label))
                 #feed_dict_test = {data_test_placeholder: test_data, label_test_placeholder: test_label,}
+                feed_dict_test = fill_feed_dict(step, test_data, test_label, data_placeholder, label_placeholder)
                 #Evaluate against the data set
                 print('Training Data Eval:')
                 _ = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label)
                 print('Test Data Eval:')
                 test_acc = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label)
-                test_loss = sess.run(loss_entroy, feed_dict = feed_dict)
+                test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
