@@ -124,9 +124,9 @@ def acc(softmax_re, labels):
     # accuracy
     with tf.name_scope('accuracy'):
         correct_predicition = tf.equal(tf.argmax(softmax_re, 1), tf.argmax(labels, 1))
-        accuracy = tf.reduce_mean(tf.cast(correct_predicition, tf.float32))
+        accuracy = tf.reduce_sum(tf.cast(correct_predicition, tf.float32))
 
-    return accuracy
+    return correct_predicition, accuracy
 
 
 def training(loss, learning_rate):
