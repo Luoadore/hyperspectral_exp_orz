@@ -102,8 +102,9 @@ def extract_data(data_file, labels_file, neighbor):
                 data_list[label - 1].append(data_temp)
                 data_pos[label - 1].append(data_position)
 
+    print('data position: ' + str(data_pos[0]))
     print('Extract data done.')
-    return data_list, data_position
+    return data_list, data_pos
 
 def onehot_label(labels, num_class):
     """To transfer labels into one-hot values.
@@ -133,6 +134,25 @@ def onehot_label(labels, num_class):
 
     return onehot_labels
 
+def decode_onehot_label(labels, num_calss):
+    """
+    To decode label from onehot into original class number.
+
+    Args:
+        labels: One-hot labels need to be transformed.
+        num_class: Classes of data.
+
+    Return:
+        original_label: Label represents by numbers.
+    """
+    original_label = []
+    for each in labels:
+        for i in range(num_calss):
+            if each[i] == 1:
+                original_label.append(i)
+
+    return original_label
+
 def shuffling1(data_set, data_pos):
     """Rewrite the shuffle function.
 
@@ -141,11 +161,11 @@ def shuffling1(data_set, data_pos):
          data_pos: Original data position, numpy darray, corresponding to the data_set, from extract_data().
 
     Return:
-         data_set: Shuffled data.
-         data_pos:Shuffled data correspond to data_set.
+         dataset: Shuffled data.
+         datapos:Shuffled data correspond to data_set.
     """
-    data_set = []
-    data_pos = []
+    dataset = []
+    datapos = []
     for eachclass, eachpos in zip(data_set, data_pos):
         num, _ = np.shape(eachclass)
         index = np.arange(num)
@@ -155,12 +175,12 @@ def shuffling1(data_set, data_pos):
         for i in range(num):
             shuffled_data.append(eachclass[index[i]])
             shuffled_pos.append(eachpos[index[i]])
-        data_set.append(shuffled_data)
-        data_pos.append(shuffled_pos)
+        dataset.append(shuffled_data)
+        datapos.append(shuffled_pos)
 
     print('Shuffling1 done.')
 
-    return data_set, data_pos
+    return dataset, datapos
 
 def shuffling2(data_set, label_set, data_pos):
     """Rewrite the shuffle function. The data is ordered according to the category, which need to transfrom into out-of-order data set for train net model.
