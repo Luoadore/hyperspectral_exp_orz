@@ -25,7 +25,7 @@ def square3_category(labels):
     """
     rows, cols = labels.shape
     classes = np.max(labels)
-    print('There are ' + str(classes) + 'classes in the data set.')
+    print('There are ' + str(classes) + ' classes in the data set.')
     center_points = []
     border_points = []
     for mark in range(classes):
@@ -54,11 +54,14 @@ def square3_category(labels):
                         continue
 
                 if data_flag == 0:
-                    center_points[label - 1] += 1
+                    center_points[label - 1][0] += 1
                 else:
-                    border_points[label - 1] += 1
+                    border_points[label - 1][0] += 1
 
-def square5_category():
+    print('3-Square done.')
+    return center_points, border_points
+
+def square5_category(labels):
     """
     Measure a pixel's class from 3 * 3 square around it.
     The shape:
@@ -79,7 +82,7 @@ def square5_category():
     """
     rows, cols = labels.shape
     classes = np.max(labels)
-    print('There are ' + str(classes) + 'classes in the data set.')
+    print('There are ' + str(classes) + ' classes in the data set.')
     center_points = []
     border_points = []
     for mark in range(classes):
@@ -119,12 +122,15 @@ def square5_category():
                         continue
 
                 if data_flag == 0:
-                    center_points[label - 1] += 1
+                    center_points[label - 1][0] += 1
                 else:
-                    border_points[label - 1] += 1
+                    border_points[label - 1][0] += 1
+
+    print('5-Square done.')
+    return center_points, border_points
 
 if __name__ == '__main__':
-    root = 'F:/hsi_data/'
+    root = 'D:/hsi/dataset/'
     # data = sio.loadmat(root + 'Kennedy Space Center (KSC)/KSCData.mat')
     label = sio.loadmat(root + 'Kennedy Space Center (KSC)/KSCGt.mat')
     labels = label['ClsID']
@@ -132,7 +138,16 @@ if __name__ == '__main__':
 
     center_3, border_3 = square3_category(labels)
     center_5, border_5 = square5_category(labels)
-
+    
+    count_3 = 0
+    count_5 = 0
     for i in range(classes):
-        print('3 * 3 :' + str(i) + 'class has ' + str(center_3[i]) + ' center points and ' + str(border_3[i]) + ' border points.')
-        print('5 * 5 :' + str(i) + 'class has ' + str(center_5[i]) + ' center points and ' + str(border_5[i]) + ' border points.')
+        print('3 * 3 :' + str(i) + ' class has ' + str(center_3[i][0]) + ' center points and ' + str(border_3[i][0]) + ' border points.')
+        print('5 * 5 :' + str(i) + ' class has ' + str(center_5[i][0]) + ' center points and ' + str(border_5[i][0]) + ' border points.')
+        print('There are ' + str(center_3[i][0] + border_3[i][0]) + ' in ' + str(i) + ' class of 3-Square.')
+        print('There are ' + str(center_5[i][0] + border_5[i][0]) + ' in ' + str(i) + ' class of 5-Square.')
+        count_3 = count_3 + center_3[i][0] + border_3[i][0]
+        count_5 = count_5 + center_5[i][0] + border_5[i][0]
+
+    print('There are ' + str(count_3) + ' pixcels in 3-Square.')
+    print('There are ' + str(count_5) + ' pixcels in 5-Square.')
