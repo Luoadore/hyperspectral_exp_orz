@@ -134,7 +134,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
             name='weights')
         biases = tf.Variable(tf.zeros([fc1_uints]),
                              name='biases')
-        mpool_flat = tf.reshape(mpool2, [-1, input_uints])
+        mpool_flat = tf.reshape(mpool3, [-1, input_uints])
         mpool_flat_drop = tf.nn.dropout(mpool_flat, keep_prob = 0.5)
         #fc1 = tf.nn.relu(tf.matmul(mpool_flat_drop, weights) + biases)
         fc1 = tf.sigmoid(tf.matmul(mpool_flat_drop, weights) + biases)
