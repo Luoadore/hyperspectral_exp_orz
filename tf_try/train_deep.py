@@ -6,8 +6,10 @@ import time
 import os.path
 import deep_cnn as dc
 import data_preprocessing as dp
+import data_preprocess_pos as dpp
 import numpy as np
 import math
+import scipy.io as sio
 
 #Basic model parameters as external flags
 flags = tf.app.flags
@@ -96,7 +98,7 @@ def fill_feed_dict(num_step, data_set, label_set, data_pl, label_pl):
 
     return feed_dict
 
-def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, label_set):
+def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, label_set, softmax):
     """Runs one evaluation against the full epoch of data.
 
     Args:
@@ -109,20 +111,24 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
 
     Return:
         precision: The accuray of the test data set
+        prediction: The prediction of the data set
 
     """
 
     #And run one apoch of eval
     true_count = 0
     num_examples = len(label_set)
+    prediction = []
     steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
     for step in range(steps_per_epoch):
         feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
         true_count += sess.run(eval_correct, feed_dict = feed_dict)
+        softmax_value = sess.run(softmax, feed_dict = feed_dict)
+        prediction.extend(np.argmax(softmax_value, axis = 1))
     precision = true_count / num_examples
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
 
-    return precision
+    return precision, prediction
 
 def run_training():
     """Train net model."""
@@ -143,6 +149,8 @@ def run_training():
     test_loss_steps = []
     test_acc_steps = []
     test_steps = []
+    train_prediction = []
+    test_prediction = []
 
     with tf.Graph().as_default():
         #Generate placeholders
@@ -196,7 +204,7 @@ def run_training():
                 summary_writer.flush()
 
             #Save a checkpoint and evaluate the model periodically
-            if(step + 1) % 1000 == 0 or (step + 1) == FLAGS.max_steps:
+            if(step + 1) % 100 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_file = os.path.join(FLAGS.train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step = step)
                 #data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
@@ -205,9 +213,9 @@ def run_training():
                 feed_dict_test = fill_feed_dict(step, test_data, test_label, data_placeholder, label_placeholder)
                 #Evaluate against the data set
                 print('Training Data Eval:')
-                _ = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label)
+                _, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
                 print('Test Data Eval:')
-                test_acc = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label)
+                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
                 test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)
@@ -217,6 +225,11 @@ def run_training():
     print('test acc: ' + str(test_acc_steps))
     print('test step: ' + str(test_steps))
     print('总用时： ' + str(time_sum))
+
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dpp.decode_onehot_label(train_label, dc.NUM_CLASSES),
+                                                'test_data': test_data, 'test_label': dpp.decode_onehot_label(test_label, dc.NUM_CLASSES),
+                                                'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
+                                                'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 def main(_):
     run_training()
