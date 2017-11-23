@@ -32,6 +32,8 @@ def extract_data(data_file, labels_file, neighbor):
     print('there are ' + str(classes) + ' class in the data set.')
     print(labels.shape)
     rows, cols = labels.shape
+    bands = np.size(data_o, 2)
+    print('The data has ' + str(bands) + ' bands.')
 
     data_list = []
     for mark in range(classes):
@@ -55,14 +57,6 @@ def extract_data(data_file, labels_file, neighbor):
                     #  data4   center_data   data5
                     #  data6      data7      data8
                     ##################################
-                    data1 = []
-                    data2 = []
-                    data3 = []
-                    data4 = []
-                    data5 = []
-                    data6 = []
-                    data7 = []
-                    data8 = []
 
                     #judgment standard, how to choose neighbors' coordinates
                     lessThan = lambda x: x - 1 if x > 0 else 0
@@ -70,33 +64,40 @@ def extract_data(data_file, labels_file, neighbor):
                     greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
 
                     if neighbor == 4:
-                        data2 = data_o[lessThan(i), j]
-                        data4 = data_o[i, lessThan(j)]
-                        data5 = data_o[i, greaterThan_col(j)]
-                        data7 = data_o[greaterThan_row(i), j]
-                        data_1 = np.append(data2, data4)
-                        data_2 = np.append(data_1, center_data)
-                        data_3 = np.append(data5, data7)
-                        data_temp = np.append(data_2, data_3)
+                        data_temp = []
+                        for each in range(bands):
+                            data2 = data_o[lessThan(i), j][each]
+                            data4 = data_o[i, lessThan(j)][each]
+                            data5 = data_o[i, greaterThan_col(j)][each]
+                            data7 = data_o[greaterThan_row(i), j][each]
+                            data_1 = np.append(data2, data4)
+                            data_2 = np.append(data_1, center_data[each])
+                            data_3 = np.append(data5, data7)
+                            data_t = np.append(data_2, data_3)
+                            data_temp = np.append(data_temp, data_t)
+                        # print(data_temp.shape)
                         print('4 neighbors extract done.')
 
                     if neighbor == 8:
-                        data1 = data_o[lessThan(i), lessThan(j)]
-                        data2 = data_o[lessThan(i), j]
-                        data3 = data_o[lessThan(i), greaterThan_col(j)]
-                        data4 = data_o[i, lessThan(j)]
-                        data5 = data_o[i, greaterThan_col(j)]
-                        data6 = data_o[greaterThan_row(i), lessThan(j)]
-                        data7 = data_o[greaterThan_row(i), j]
-                        data8 = data_o[greaterThan_row(i), greaterThan_col(j)]
-                        data_1 = np.append(data1, data2)
-                        data_2 = np.append(data3, data4)
-                        data_3 = np.append(data_1, data_2)
-                        data_4 = np.append(data_3, center_data)
-                        data_5 = np.append(data5, data6)
-                        data_6 = np.append(data7, data8)
-                        data_7 = np.append(data_4, data_5)
-                        data_temp = np.append(data_7, data_6)
+                        data_temp = []
+                        for each in range(bands):
+                            data1 = data_o[lessThan(i), lessThan(j)][each]
+                            data2 = data_o[lessThan(i), j][each]
+                            data3 = data_o[lessThan(i), greaterThan_col(j)][each]
+                            data4 = data_o[i, lessThan(j)][each]
+                            data5 = data_o[i, greaterThan_col(j)][each]
+                            data6 = data_o[greaterThan_row(i), lessThan(j)][each]
+                            data7 = data_o[greaterThan_row(i), j][each]
+                            data8 = data_o[greaterThan_row(i), greaterThan_col(j)][each]
+                            data_1 = np.append(data1, data2)
+                            data_2 = np.append(data3, data4)
+                            data_3 = np.append(data_1, data_2)
+                            data_4 = np.append(data_3, center_data[each])
+                            data_5 = np.append(data5, data6)
+                            data_6 = np.append(data7, data8)
+                            data_7 = np.append(data_4, data_5)
+                            data_t = np.append(data_7, data_6)
+                            data_temp = np.append(data_temp, data_t)
                         print('8 neighbors extract done.')
 
                 data_list[label - 1].append(data_temp)
