@@ -1,6 +1,8 @@
 # coding: utf-8
 import scipy.io as sio
 import numpy as np
+from openpyxl import Workbook
+from openpyxl import load_workbook
 
 def get_data(data_file):
     """
@@ -29,16 +31,13 @@ def get_data(data_file):
 
     return train_data, train_label, train_pred, test_data, test_label, test_pred
 
-from openpyxl import Workbook
-from openpyxl import load_workbook
-
 def get_confuse_matrix(label_gt, label_pred):
     """
     Calculating the confuse matrix.
 
     Args:
-        label_gt:
-        label_pred:
+        label_gt: Real label.
+        label_pred: Prediction of the label.
 
     Return:
         confuse_matrix: One element [i, j] means the sample numbers of  i-th class predicting to j-th class, the diagonal elements means the correction of the predictiong numbers.
@@ -85,29 +84,61 @@ def confuse_save(conf_matrix, sheet_name, file_name, new_flag):
     wb.save(filename = file_name)
     print('Save the matrix.')
 
-def get_misClassify_neighbors_info(conf_matrix):
+def get_misClassify_neighbors_info(conf_matrix, original_data, original_labels, labels, pred, pos):
     """
     Get the misclassified samples' information according to the confuse matrix.
     Information including a sample's position, class and its 8-neighbors' class.
 
     Arg:
         conf_matrix: Confuse matrix from get_confuse_matrix()
+        original_data: Original data (3d).
+        original_labels: Original label ground truth.
+        labels: Train or test labels.
+        pred: Prediction of the train or test data.
+        pos: Position of corresponding labels.
 
     Returns:
         mis_class: Tuple, [Misclassified sample's class, prediction].
         mis_position: Misclassified sample's position.
+        mis_bands: Misclassified sample's bands value.
         mis_neighbors: The class of Misclassified sample's 8-neighbors.
 
     """
-    m, n = np.size(conf_matrix)
+    mis_class = []
+    mis_position = []
+    mis_bands = []
+    mis_neighbors = []
+    m, n = conf_matrix.shape
+    for row in range(m):
+        for col in range(n):
+            if row == col:
+                continue
+            else:
+                for i in range(len(labels)):
+                    if labels[i] == row and pred[i] == col:
+                        mis_class.append([row, col])
+                        mis_position.append(pos[i])
+                        mis_bands.append(original_data[row, col])
 
+                        # judgment standard, how to choose neighbors' coordinates
+                        rows, cols = original_labels.shape
+                        lessThan = lambda x: x - 1 if x > 0 else 0
+                        greaterThan_row = lambda x: x + 1 if x < rows - 1 else rows - 1
+                        greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
 
-if __name__ == '__main__':
-    root = 'F:\hsi_result\original'
-    for i in [1, 4, 8]:
-        train_data, train_label, train_pred, test_data, test_label, test_pred = get_data(root + '\KSC\data\data' + str(i) + '.mat')
-        confuse_matrix_train = get_confuse_matrix(train_label, train_pred)
-        confuse_matrix_test = get_confuse_matrix(test_label, test_pred)
-        confuse_save(confuse_matrix_train, 'train_' + str(i), root, 1)
-        confuse_save(confuse_matrix_test, 'test_' + str(i), root, 1)
+                        data_label = []
+                        data_label.extend([original_labels[lessThan(row), lessThan(col)], original_labels[lessThan(row), col], original_labels[lessThan(row), greaterThan_col(col)],
+                                           original_labels[row, lessThan(col)], original_labels[row, greaterThan_col(col)],
+                                           original_labels[greaterThan_row(row), lessThan(col)], original_labels[greaterThan_row(row), col], original_labels[greaterThan_row(row), greaterThan_col(col)]])
+                        mis_neighbors.append(data_label)
 
+    return mis_class, mis_position, mis_bands, mis_neighbors
+
+#if __name__ == '__main__':
+    #root = 'F:\hsi_result\original'
+    #for i in [1, 4, 8]:
+        #train_data, train_label, train_pred, test_data, test_label, test_pred = get_data(root + '\KSC\data\data' + str(i) + '.mat')
+        #confuse_matrix_train = get_confuse_matrix(train_label, train_pred)
+        #confuse_matrix_test = get_confuse_matrix(test_label, test_pred)
+        #confuse_save(confuse_matrix_train, 'train_' + str(i), root, 1)
+        #confuse_save(confuse_matrix_test, 'test_' + str(i), root, 1)
