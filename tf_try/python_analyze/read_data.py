@@ -1,8 +1,8 @@
 # coding: utf-8
 import scipy.io as sio
 import numpy as np
-from openpyxl import Workbook
-from openpyxl import load_workbook
+#from openpyxl import Workbook
+#from openpyxl import load_workbook
 
 def get_data(data_file):
     """
@@ -15,9 +15,11 @@ def get_data(data_file):
         train_data: Training dataset
         train_label: The label of training data
         train_pred: The prediction of training data
+        train_pos: Train data location
         test_data: Test dataset
         test_label: the label of test data
         test_pred: The prediction of test data
+        test_pos: Test data location
 
     """
 
@@ -25,11 +27,13 @@ def get_data(data_file):
     train_data = data['train_data']
     train_label = data['train_label']
     train_pred = data['train_prediction']
+    train_pos = data['train_pos']
     test_data = data['test_data']
     test_label = data['test_label']
     test_pred = data['test_prediction']
+    test_pos = data['test_pos']
 
-    return train_data, train_label, train_pred, test_data, test_label, test_pred
+    return train_data, train_label, train_pred, train_pos, test_data, test_label, test_pred, test_pos
 
 def get_confuse_matrix(label_gt, label_pred):
     """
@@ -56,7 +60,7 @@ def get_confuse_matrix(label_gt, label_pred):
     print('Confuse matrix done.')
     return confuse_matrix
 
-def confuse_save(conf_matrix, sheet_name, file_name, new_flag):
+#def confuse_save(conf_matrix, sheet_name, file_name, new_flag):
     """
     Save confuse matrix into excel file.
 
@@ -67,8 +71,8 @@ def confuse_save(conf_matrix, sheet_name, file_name, new_flag):
         new_flag: Whether write to new workbook
 
     """
-    label_num = np.size(conf_matrix, 1)
-
+ #   label_num = np.size(conf_matrix, 1)
+"""
     if new_flag:
         wb = Workbook()
         ws = wb.active
@@ -82,17 +86,17 @@ def confuse_save(conf_matrix, sheet_name, file_name, new_flag):
              ws.cell(row = idx1, column = idx2, value = conf_matrix[idx1 - 1, idx2 - 1])
 
     wb.save(filename = file_name)
-    print('Save the matrix.')
+    print('Save the matrix.')"""
 
-def get_misClassify_neighbors_info(conf_matrix, original_data, original_labels, labels, pred, pos):
+def get_misClassify_neighbors_info(conf_matrix, original_labels, data, labels, pred, pos):
     """
     Get the misclassified samples' information according to the confuse matrix.
     Information including a sample's position, class and its 8-neighbors' class.
 
     Arg:
         conf_matrix: Confuse matrix from get_confuse_matrix()
-        original_data: Original data (3d).
         original_labels: Original label ground truth.
+        data: Train or test data.
         labels: Train or test labels.
         pred: Prediction of the train or test data.
         pos: Position of corresponding labels.
@@ -109,28 +113,28 @@ def get_misClassify_neighbors_info(conf_matrix, original_data, original_labels, 
     mis_bands = []
     mis_neighbors = []
     m, n = conf_matrix.shape
+
     for row in range(m):
         for col in range(n):
-            if row == col:
-                continue
-            else:
-                for i in range(len(labels)):
-                    if labels[i] == row and pred[i] == col:
-                        mis_class.append([row, col])
-                        mis_position.append(pos[i])
-                        mis_bands.append(original_data[row, col])
+            if row != col:
+                if conf_matrix[row, col] != 0:
+                    for i in range(np.size(labels, axis = 1)):
+                        if labels[0, i] == row and pred[0, i] == col:
+                            mis_class.append([row, col])
+                            mis_position.append(pos[i, :])
+                            mis_bands.append(data[i, :])
 
-                        # judgment standard, how to choose neighbors' coordinates
-                        rows, cols = original_labels.shape
-                        lessThan = lambda x: x - 1 if x > 0 else 0
-                        greaterThan_row = lambda x: x + 1 if x < rows - 1 else rows - 1
-                        greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
+                            # judgment standard, how to choose neighbors' coordinates
+                            rows, cols = original_labels.shape
+                            lessThan = lambda x: x - 1 if x > 0 else 0
+                            greaterThan_row = lambda x: x + 1 if x < rows - 1 else rows - 1
+                            greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
 
-                        data_label = []
-                        data_label.extend([original_labels[lessThan(row), lessThan(col)], original_labels[lessThan(row), col], original_labels[lessThan(row), greaterThan_col(col)],
+                            data_label = []
+                            data_label.extend([original_labels[lessThan(row), lessThan(col)], original_labels[lessThan(row), col], original_labels[lessThan(row), greaterThan_col(col)],
                                            original_labels[row, lessThan(col)], original_labels[row, greaterThan_col(col)],
                                            original_labels[greaterThan_row(row), lessThan(col)], original_labels[greaterThan_row(row), col], original_labels[greaterThan_row(row), greaterThan_col(col)]])
-                        mis_neighbors.append(data_label)
+                            mis_neighbors.append(data_label)
 
     return mis_class, mis_position, mis_bands, mis_neighbors
 
