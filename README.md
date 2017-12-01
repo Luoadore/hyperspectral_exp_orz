@@ -1,6 +1,6 @@
-# hyperspectral_exp_orz
+##hyperspectral_exp_orz##
 
-author£ºLuo Ya'nan
+authorï¼šLuo Ya'nan
 
 /caffe_try
 Classification use caffe's python API.
@@ -15,7 +15,7 @@ Classification use caffe's python API.
 Try mnist data set use caffe's python API, get correct result.
 
     load_mnist_data: Transform mnist data into the visiable form.
-    myload_mnist_data: Change some of the load data function, ¾ßÌåÊ²Ã´Íü¼ÇÁË...Ì«¾ÃÃ»ÓÃÁË
+    myload_mnist_data: Change some of the load data function, å…·ä½“ä»€ä¹ˆå¿˜è®°äº†...å¤ªä¹…æ²¡ç”¨äº†
     predict_label: Use API to batch classify test data.
     mnist_solver: Train net hyperparams.
     mnist_train_test: Train net model.
