@@ -13,22 +13,22 @@ import scipy.io as sio
 #Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.3, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 153, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24 * 9, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
-flags.DEFINE_integer('conv2_uints', 32, 'Number of uints in convolutiona2 layer.')
-flags.DEFINE_integer('conv3_uints', 64, 'Number of uints in convolutiona3 layer.')
-flags.DEFINE_integer('conv4_uints', 64, 'Number of uints in convolutiona4 layer.')
+flags.DEFINE_integer('conv2_uints', 32, 'Number of uints in convolution2 layer.')
+flags.DEFINE_integer('conv3_uints', 64, 'Number of uints in convolution3 layer.')
+flags.DEFINE_integer('conv4_uints', 64, 'Number of uints in convolution4 layer.')
 flags.DEFINE_integer('fc1_uints', 1024, 'Number of uints in fully connection layer one.')
 flags.DEFINE_integer('fc2_uints', 100, 'Number of uints in fully connection layer two.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
-flags.DEFINE_string('data_dir', 'F:\hsi_result\original\KSC\data\data8.mat', 'Directory of data file.')
-# flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', 'F:\hsi_result\deep\KSC\exp8', 'The train result save file.')
+flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
+flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
+flags.DEFINE_string('train_dir', 'F:\hsi_result\deep\KSC', 'The train result save file.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -133,8 +133,8 @@ def run_training():
     """Train net model."""
     # Get the sets of data
     # First method to get data
-    """data_set = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
-    train_data, train_label, test_data, test_label = dp.load_data(data_set, FLAGS.ratio)
+    data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
+    train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
     print(len(train_data[0]))
     print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
     print('test label length:' + str(len(test_label)) + ', test data length: ' + str(len(test_data)))
@@ -144,9 +144,9 @@ def run_training():
     print('test: ')
     test_label = dp.onehot_label(test_label, dc.NUM_CLASSES)
     print('train_data: ' + str(np.max(train_data)))
-    print('train_data: ' + str(np.min(train_data)))"""
+    print('train_data: ' + str(np.min(train_data)))
     # Second method to get data
-    data = sio.loadmat(FLAGS.data_dir)
+    """data = sio.loadmat(FLAGS.data_dir)
     train_data = data['train_data']
     train_label = np.transpose(data['train_label'])
     test_data = data['test_data']
@@ -156,7 +156,7 @@ def run_training():
     print(np.shape(train_data))
     print(np.shape(train_label))
     print(np.shape(test_data))
-    print(np.shape(test_label))
+    print(np.shape(test_label))"""
 
     test_loss_steps = []
     test_acc_steps = []
@@ -238,8 +238,8 @@ def run_training():
     print('test step: ' + str(test_steps))
     print('总用时： ' + str(time_sum))
 
-    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES),
-                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES),
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), 'train_pos': train_pos,
+                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), 'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
