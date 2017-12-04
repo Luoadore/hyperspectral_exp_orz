@@ -10,7 +10,7 @@ function [steps,acc,loss] = read_train(root, neighbor)
 %        acc: Accuracy of per 100 iterations.
 %        loss: Loss of per 100 iterations.
 
-acc_path = [root,'\run_',num2str(neighbor),'-tag-accuary.csv'];
+acc_path = [root,'\run_',num2str(neighbor),'-tag-accuracy_1.csv'];
 loss_path = strcat(root,'\run_',num2str(neighbor),'-tag-training-loss.csv');
 acc_data = csvread(acc_path,1,1);
 loss_data = csvread(loss_path,1,1);

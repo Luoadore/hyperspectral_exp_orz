@@ -1,4 +1,4 @@
-function [steps, acc, loss] = read_test(root, neighbor)
+function [steps, acc_train, acc_test, loss] = read_test(root, neighbor)
 %Load data set from mat, and return column array.
 %
 %   Args:
@@ -13,8 +13,9 @@ function [steps, acc, loss] = read_test(root, neighbor)
 path = [root,'\data',num2str(neighbor),'.mat'];
 load(path);
 steps = test_step';
-acc = test_acc';
+acc_test = test_acc';
 loss = test_loss';
+acc_train = train_acc';
 
 end
 
