@@ -13,18 +13,18 @@ import scipy.io as sio
 #Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.3, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 1000, 'Number of steps to run trainer.')
+flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
+flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24 * 1, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
-flags.DEFINE_integer('batch_size', 400, 'Batch size.')
+flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 0, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
-flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
-flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', 'F:\hsi_result', 'The train result save file.')
+flags.DEFINE_string('data_dir', 'F:\hsi_data\Indian Pine\Indian_pines_corrected.mat', 'Directory of data file.')
+flags.DEFINE_string('label_dir', 'F:\hsi_data\Indian Pine\Indian_pines_gt.mat', 'Directory of label file.')
+flags.DEFINE_string('train_dir', 'F:\hsi_result\original\IP\exp1\\3rd', 'The train result save file.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -36,7 +36,7 @@ def placeholder_inputs(batch_size):
         data_placeholder: Data placeholder
         labels_placeholder: Labels placeholder
     """
-    data_placeholder = tf.placeholder(tf.float32, shape = (None, oc.BANDS_SIZE)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
+    data_placeholder = tf.placeholder(tf.float32, shape = (None, oc.BANDS_SIZE * FLAGS.conv1_stride)) #记得这里修改BAND_SIZE的值, * 1, 5, 9
     label_placeholder = tf.placeholder(tf.float32, shape = (None, oc.NUM_CLASSES))
     
     return data_placeholder, label_placeholder
@@ -145,6 +145,7 @@ def run_training():
     print('train_data: ' + str(np.max(train_data)))
     print('train_data: ' + str(np.min(train_data)))
 
+    train_acc_steps = []
     test_loss_steps = []
     test_acc_steps = []
     test_steps = []
@@ -162,7 +163,7 @@ def run_training():
         train_op = oc.training(loss_entroy, FLAGS.learning_rate)
         #Add thp Op to compare the loss to the labels
         pred, correct = oc.acc(softmax, label_placeholder)
-        tf.summary.scalar('accuary', correct)
+        tf.summary.scalar('accuracy', pred)
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
@@ -213,7 +214,7 @@ def run_training():
             if step % 100 == 0:
                 #Print status to stdout
                 print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
-                time_sum = time_sum +  duration
+                time_sum = time_sum + duration
                 #Update the events file
                 summary_str = sess.run(summary_op, feed_dict = feed_dict)
                 summary_writer.add_summary(summary_str, step)
@@ -229,7 +230,8 @@ def run_training():
                 feed_dict_test = fill_feed_dict(step, test_data, test_label, data_placeholder, label_placeholder)
                 #Evaluate against the data set
                 print('Training Data Eval:')
-                _, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
+                train_acc, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
+                train_acc_steps.append(train_acc)
                 print('Test Data Eval:')
                 test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
                 test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
@@ -250,6 +252,7 @@ def run_training():
     sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
                                                 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
+                                                'train_acc': train_acc_steps,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 
