@@ -133,7 +133,7 @@ def run_training():
     """Train net model."""
     # Get the sets of data
     # First method to get data
-    data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
+    """data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
     train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
     print(len(train_data[0]))
     print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
@@ -144,9 +144,9 @@ def run_training():
     print('test: ')
     test_label = dp.onehot_label(test_label, dc.NUM_CLASSES)
     print('train_data: ' + str(np.max(train_data)))
-    print('train_data: ' + str(np.min(train_data)))
+    print('train_data: ' + str(np.min(train_data)))"""
     # Second method to get data
-    """data = sio.loadmat(FLAGS.data_dir)
+    data = sio.loadmat('F:\hsi_result\deep\KSC\exp8\\train1_lr0.1\\2nd\data.mat')
     train_data = data['train_data']
     train_label = np.transpose(data['train_label'])
     test_data = data['test_data']
@@ -156,7 +156,7 @@ def run_training():
     print(np.shape(train_data))
     print(np.shape(train_label))
     print(np.shape(test_data))
-    print(np.shape(test_label))"""
+    print(np.shape(test_label))
 
     test_loss_steps = []
     test_acc_steps = []
@@ -180,7 +180,7 @@ def run_training():
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
-        init = tf.global_variables_initializer()
+        #init = tf.global_variables_initializer()
         #Create a saver for writing traing checkpoints
         saver = tf.train.Saver()
 
@@ -190,7 +190,9 @@ def run_training():
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
         #Run the Op to initialize the variables
-        sess.run(init)
+        #sess.run(init)
+        ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+        saver.restore(sess, ckpt.model_checkpoint_path)
 
         time_sum = 0
 
@@ -238,8 +240,8 @@ def run_training():
     print('test step: ' + str(test_steps))
     print('总用时： ' + str(time_sum))
 
-    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), 'train_pos': train_pos,
-                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), 'test_pos': test_pos,
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), #'train_pos': train_pos,
+                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), #'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
