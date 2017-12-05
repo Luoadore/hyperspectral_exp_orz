@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import read_data as rd
-#from sklearn import preprocessing as sp
 
 def get_statistic_by_class(fea, label):
     """
@@ -154,12 +153,28 @@ def plot_std_line(idata, data_name):
     plt.xlabel('Feature No.')
     plt.ylabel('Std of feature value')
     plt.title('Feature value distribution (' + data_name + ')')
-    plt.legend()
+    plt.legend(loc = 'upper right', bbox_to_anchor = (0.6, 0.95), ncol = 3, fancybox = True, shadow = True)
     plt.show()
 
-if __name__ == '__main__':
+def plot_hist(idata, data_name):
     """
-    #plot misclassification
+    Plotting.
+
+    Args:
+        idata: Plotting data.
+        data_name: Plotting figure name.
+
+    """
+    class_num = np.size(idata, 0)
+    fea_num = np.size(idata, 1)
+    
+    for idx in range(fea_num):
+        plt.hist(idata[:, idx], bins = 10, normed = 1, edgecolor = 'None', facecolor = 'red')
+        #plt.show()
+        plt.savefig(data_name + ' ' + str(idx))
+
+if __name__ == '__main__':
+    
     root_split = 'I:\\try\\result_data\KSCdata'
     root_original = 'D:\hsi\dataset\Kennedy Space Center (KSC)'
 
@@ -167,13 +182,14 @@ if __name__ == '__main__':
     #data = data_o['DataSet']
     label_o = sio.loadmat(root_original + '\KSCGt.mat')
     label = label_o['ClsID']
-    #scaler = sp.StandardScaler().fit(data)
-    #data = scaler.transform(data)
 
     train_data, train_label, train_pred, train_pos, test_data, test_label, test_pred, test_pos = rd.get_data(root_split + '\data1.mat')
     train_mean, train_std = get_statistic_by_class(train_data, train_label)
     test_mean, test_std = get_statistic_by_class(test_data, test_label)
-    # plot_mean_line(train_mean, 'Data1')
+    #plot_mean_line(train_mean, 'Data1')
+    #plot_std_line(train_std, 'KSC_Data1')
+    plot_hist(train_data, 'ksc')
+    """# plot misclassification
     train_conf_matrix = rd.get_confuse_matrix(train_label, train_pred)
     test_conf_matrix = rd.get_confuse_matrix(test_label, test_pred)
     print('train conf matrix')
@@ -192,7 +208,7 @@ if __name__ == '__main__':
                                                    'te_mis_class': te_mis_class, 'te_mis_position': te_mis_position, 'te_mis_bands': te_mis_bands, 'te_mis_neighbors': te_mis_neighbors, 'test_conf_matrix': test_conf_matrix})"""
 
     #plot according calss
-    pu_train_data, pu_train_label, _, _, pu_test_data, pu_test_label, _, _ = rd.get_data('pu_data1.mat')
+    """pu_train_data, pu_train_label, _, _, pu_test_data, pu_test_label, _, _ = rd.get_data('pu_data1.mat')
     pu_train_mean, _ = get_statistic_by_class(pu_train_data, pu_train_label)
     pu_test_mean, _ = get_statistic_by_class(pu_test_data, pu_test_label)
     pc_train_data, pc_train_label, _, _, pc_test_data, pc_test_label, _, _ = rd.get_data('pc_data1.mat')
@@ -201,6 +217,6 @@ if __name__ == '__main__':
     acc_class = [[1, 3, 'Trees'], [2, 1, 'Meadows'], [4, 5, 'Bare soil'], 
                  [5, 0, 'Asphalt'], [6, 6, 'Bitumen'], [8, 8, 'Shadows']]
     plot_diffData_sameClass(pc_train_mean, pu_train_mean, acc_class, 'train')
-    plot_diffData_sameClass(pc_test_mean, pu_test_mean, acc_class, 'test')
+    plot_diffData_sameClass(pc_test_mean, pu_test_mean, acc_class, 'test')"""
     
     print('Done.') 
