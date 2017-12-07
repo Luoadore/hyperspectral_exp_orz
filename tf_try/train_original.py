@@ -16,15 +16,15 @@ FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
-flags.DEFINE_integer('conv1_kernel', 24 * 1, 'Length of kernel in conv1.')
-flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
+flags.DEFINE_integer('conv1_kernel', 24 * 9, 'Length of kernel in conv1.')
+flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
-flags.DEFINE_integer('neighbor', 0, 'Neighbor of data option, including 0, 4 and 8.')
+flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', 'F:\hsi_data\Indian Pine\Indian_pines_corrected.mat', 'Directory of data file.')
 flags.DEFINE_string('label_dir', 'F:\hsi_data\Indian Pine\Indian_pines_gt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', 'F:\hsi_result\original\IP\exp1\\3rd', 'The train result save file.')
+flags.DEFINE_string('train_dir', 'F:\\tf-try\\result', 'The train result save file.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -130,7 +130,7 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
 def run_training():
     """Train net model."""
     #Get the sets of data
-    global prediction
+    """global prediction
     data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
     print('data position: ------' + str(data_pos))
     train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
@@ -143,7 +143,20 @@ def run_training():
     print('test: ')
     test_label = dp.onehot_label(test_label, oc.NUM_CLASSES)
     print('train_data: ' + str(np.max(train_data)))
-    print('train_data: ' + str(np.min(train_data)))
+    print('train_data: ' + str(np.min(train_data)))"""
+
+    # Second method to get data
+    data = sio.loadmat('data8.mat')
+    train_data = data['train_data']
+    train_label = np.transpose(data['train_label'])
+    test_data = data['test_data']
+    test_label = np.transpose(data['test_label'])
+    train_label = dp.onehot_label(train_label, oc.NUM_CLASSES)
+    test_label = dp.onehot_label(test_label, oc.NUM_CLASSES)
+    print(np.shape(train_data))
+    print(np.shape(train_label))
+    print(np.shape(test_data))
+    print(np.shape(test_label))
 
     train_acc_steps = []
     test_loss_steps = []
@@ -151,6 +164,7 @@ def run_training():
     test_steps = []
     train_prediction = []
     test_prediction = []
+    test_fc = []
 
     with tf.Graph().as_default():
         #Generate placeholders
@@ -188,7 +202,7 @@ def run_training():
             feed_dict = fill_feed_dict(step, train_data, train_label, data_placeholder, label_placeholder)
             
             #Run one step of the model
-            _, loss_value = sess.run([train_op, loss_entroy], feed_dict = feed_dict)
+            _, loss_value, fc_value = sess.run([train_op, loss_entroy, fc], feed_dict = feed_dict)
 
             #print(np.shape(conv1_weights_value))
             #print('input ************************************')
@@ -234,25 +248,25 @@ def run_training():
                 train_acc_steps.append(train_acc)
                 print('Test Data Eval:')
                 test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
-                test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
+                test_loss, test_fc_value = sess.run([loss_entroy, fc], feed_dict = feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
+                test_fc.append(test_fc_value)
 
-    print('test loss: ' + str(test_loss_steps))
+    """print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
     print('test step: ' + str(test_steps))
-    print(train_prediction)
     print('train prediction: ' + str(np.reshape(np.array(train_prediction), [1, len(train_label)])))
     print('train label: ' + str(dp.decode_onehot_label(train_label, oc.NUM_CLASSES)))
     print('test predicition: ' + str(np.reshape(np.array(test_prediction), [1, len(test_label)])))
     print('test label: ' + str(dp.decode_onehot_label(test_label, oc.NUM_CLASSES)))
-    print('总用时： ' + str(time_sum))
+    print('总用时： ' + str(time_sum))"""
 
-    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
-                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), #'train_pos': train_pos,
+                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), #'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
-                                                'train_acc': train_acc_steps,
+                                                'train_acc': train_acc_steps, 'train_fea': fc_value, 'test_fea': test_fc_value,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 
