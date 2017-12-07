@@ -27,13 +27,15 @@ def get_data(data_file):
     train_data = data['train_data']
     train_label = data['train_label']
     train_pred = data['train_prediction']
-    train_pos = data['train_pos']
+    #train_pos = data['train_pos']
+    train_fea = data['train_fea']
     test_data = data['test_data']
     test_label = data['test_label']
     test_pred = data['test_prediction']
-    test_pos = data['test_pos']
+    #test_pos = data['test_pos']
+    test_fea = data['test_fea']
 
-    return train_data, train_label, train_pred, train_pos, test_data, test_label, test_pred, test_pos
+    return train_data, train_label, train_pred, train_fea, test_data, test_label, test_pred, test_fea
 
 def get_confuse_matrix(label_gt, label_pred):
     """
