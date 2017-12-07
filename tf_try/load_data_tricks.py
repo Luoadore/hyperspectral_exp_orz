@@ -26,8 +26,8 @@ def extract_data_cen_bor(data_file, labels_file, neighbor):
     global data_position
     data = sio.loadmat(data_file)
     label = sio.loadmat(labels_file)
-    data_o = data['indian_pines_corrected']
-    labels = label['indian_pines_gt']
+    data_o = data['DataSet']
+    labels = label['ClsID']
     classes = np.max(labels)
     print('there are ' + str(classes) + ' class in the data set.')
     print(labels.shape)
@@ -37,6 +37,8 @@ def extract_data_cen_bor(data_file, labels_file, neighbor):
 
     data_list = []
     classes_extend = int(classes) * 2
+    print(classes_extend)
+
     for mark in range(classes_extend):
         data_list.append([])
 
@@ -62,8 +64,8 @@ def extract_data_cen_bor(data_file, labels_file, neighbor):
                                   labels[greaterThan_row(i), lessThan(j)], labels[greaterThan_row(i), j], labels[greaterThan_row(i), greaterThan_col(j)]])
 
                 data_flag = 0    # center
-                for i in range(len(data_label)):
-                    if data_label[i] != label:
+                for idx in range(len(data_label)):
+                    if data_label[idx] != label:
                         data_flag = 1    # border
                     else:
                         continue
@@ -121,6 +123,8 @@ def extract_data_cen_bor(data_file, labels_file, neighbor):
                     data_list[label - 1 + classes].append(data_temp)
                     data_pos[label - 1 + classes].append(data_position)
 
+    print(data_list)
+    print(len(data_pos))
     print('Extract data done.')
     return data_list, data_pos
 
