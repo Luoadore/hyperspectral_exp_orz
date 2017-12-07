@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io as sio
 import read_data as rd
+import ai.data_preprocess_pos as dp
 
 def get_statistic_by_class(fea, label):
     """
@@ -161,34 +162,46 @@ def plot_hist(idata, data_name):
     Plotting.
 
     Args:
-        idata: Plotting data.
+        idata: Plotting data, index represents class and every inner list include according samples.
         data_name: Plotting figure name.
 
     """
-    class_num = np.size(idata, 0)
-    fea_num = np.size(idata, 1)
-    
-    for idx in range(fea_num):
-        plt.hist(idata[:, idx], bins = 10, normed = 1, edgecolor = 'None', facecolor = 'red')
-        #plt.show()
-        plt.savefig(data_name + ' ' + str(idx))
+    class_num = np.size(idata)
+    fea_num = np.size(idata[0], 1)
+
+    for eachclass, i in zip(idata, range(class_num)):
+        eachclass = np.array(eachclass)
+        # np.clip(eachclass, 0, 255, out = eachclass)
+        eachclass[eachclass >= 65534] = 0
+        for idx in range(fea_num):
+            plt.hist(eachclass[:, idx], bins = 125, normed = False, edgecolor = 'red', facecolor = 'red')
+            #plt.show()
+            plt.title(data_name + ' class-' + str(i) + ' fea-' + str(idx))
+            plt.savefig('I:\\try\ksc\\' + data_name + ' class-' + str(i) + ' fea-' + str(idx))
+            plt.clf()
+            plt.cla()
 
 if __name__ == '__main__':
     
     root_split = 'I:\\try\\result_data\KSCdata'
     root_original = 'D:\hsi\dataset\Kennedy Space Center (KSC)'
 
-    #data_o = sio.loadmat(root_original + '\KSCData.mat')
-    #data = data_o['DataSet']
+    """data_o = sio.loadmat(root_original + '\KSCData.mat')
+    data = data_o['DataSet']
     label_o = sio.loadmat(root_original + '\KSCGt.mat')
-    label = label_o['ClsID']
+    label = label_o['ClsID']"""
 
+    """# plot mean and std
     train_data, train_label, train_pred, train_pos, test_data, test_label, test_pred, test_pos = rd.get_data(root_split + '\data1.mat')
     train_mean, train_std = get_statistic_by_class(train_data, train_label)
     test_mean, test_std = get_statistic_by_class(test_data, test_label)
-    #plot_mean_line(train_mean, 'Data1')
-    #plot_std_line(train_std, 'KSC_Data1')
-    plot_hist(train_data, 'ksc')
+    plot_mean_line(train_mean, 'Data1')
+    plot_std_line(train_std, 'KSC_Data1')"""
+    # plot histogram
+    data_set, _ = dp.extract_data(root_original + '\KSCData.mat', root_original + '\KSCGt.mat', 0)
+    data = np.array(data_set)
+    print(type(data))
+    plot_hist(data, 'ksc')
     """# plot misclassification
     train_conf_matrix = rd.get_confuse_matrix(train_label, train_pred)
     test_conf_matrix = rd.get_confuse_matrix(test_label, test_pred)
