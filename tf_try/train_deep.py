@@ -9,11 +9,12 @@ import data_preprocess_pos as dp
 import numpy as np
 import math
 import scipy.io as sio
+import load_data_tricks as lt
 
 #Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 153, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 24 * 9, 'Length of kernel in conv1.')
@@ -26,9 +27,9 @@ flags.DEFINE_integer('fc2_uints', 100, 'Number of uints in fully connection laye
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
-flags.DEFINE_string('data_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCData.mat', 'Directory of data file.')
-flags.DEFINE_string('label_dir', 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', 'F:\hsi_result\deep\KSC', 'The train result save file.')
+flags.DEFINE_string('data_dir', 'H:\CodeStore\hsi_data\KSC\KSCData.mat', 'Directory of data file.')
+flags.DEFINE_string('label_dir', 'H:\CodeStore\hsi_data\KSC\KSCGt.mat', 'Directory of label file.')
+flags.DEFINE_string('train_dir', 'H:\CodeStore\hsi_result\KSC', 'The train result save file.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -133,8 +134,10 @@ def run_training():
     """Train net model."""
     # Get the sets of data
     # First method to get data
-    """data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
-    train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
+    #data_set, data_pos = lt.extract_data_cen_bor(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
+    data_set, data_pos = dp.extract_data(FLAGS.data_dir, FLAGS.label_dir, FLAGS.neighbor)
+    #train_data, train_label, train_pos, test_data, test_label, test_pos = dp.load_data(data_set, data_pos, FLAGS.ratio)
+    train_data, train_label, train_pos, test_data, test_label, test_pos = lt.load_data_equal_by_class(data_set, data_pos)
     print(len(train_data[0]))
     print('train label length: ' + str(len(train_label)) + ', train data length: ' + str(len(train_data)))
     print('test label length:' + str(len(test_label)) + ', test data length: ' + str(len(test_data)))
@@ -144,9 +147,9 @@ def run_training():
     print('test: ')
     test_label = dp.onehot_label(test_label, dc.NUM_CLASSES)
     print('train_data: ' + str(np.max(train_data)))
-    print('train_data: ' + str(np.min(train_data)))"""
+    print('train_data: ' + str(np.min(train_data)))
     # Second method to get data
-    data = sio.loadmat('F:\hsi_result\deep\KSC\exp8\\train1_lr0.1\\2nd\data.mat')
+    """data = sio.loadmat('F:\hsi_result\deep\KSC\data.mat')
     train_data = data['train_data']
     train_label = np.transpose(data['train_label'])
     test_data = data['test_data']
@@ -156,7 +159,7 @@ def run_training():
     print(np.shape(train_data))
     print(np.shape(train_label))
     print(np.shape(test_data))
-    print(np.shape(test_label))
+    print(np.shape(test_label))"""
 
     test_loss_steps = []
     test_acc_steps = []
@@ -176,11 +179,12 @@ def run_training():
         train_op = dc.training(loss_entroy, FLAGS.learning_rate)
         #Add thp Op to compare the loss to the labels
         pred, correct = dc.acc(softmax, label_placeholder)
+        #pred, correct = dc.acc_extend(softmax, label_placeholder)
         tf.summary.scalar('accuracy', pred)
         #Build the summary operation based on the TF collection of Summaries
         summary_op = tf.summary.merge_all()
         #Add the variable initalizer Op
-        #init = tf.global_variables_initializer()
+        init = tf.global_variables_initializer()
         #Create a saver for writing traing checkpoints
         saver = tf.train.Saver()
 
@@ -190,9 +194,11 @@ def run_training():
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
         #Run the Op to initialize the variables
-        #sess.run(init)
-        ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-        saver.restore(sess, ckpt.model_checkpoint_path)
+        sess.run(init)
+
+        #finetuning
+        #ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+        #saver.restore(sess, ckpt.model_checkpoint_path)
 
         time_sum = 0
 
@@ -240,8 +246,8 @@ def run_training():
     print('test step: ' + str(test_steps))
     print('总用时： ' + str(time_sum))
 
-    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), #'train_pos': train_pos,
-                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), #'test_pos': test_pos,
+    sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), 'train_pos': train_pos,
+                                                'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), 'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
