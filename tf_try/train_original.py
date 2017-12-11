@@ -126,7 +126,36 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
     print('Num examples: %d Num correct: %d Precision @ 1: %0.04f' % (num_examples, true_count, precision))
 
     return precision, predicition
-    
+
+def get_fc(sess, data_placeholder, label_placeholder, data_set, label_set, fc):
+    """Runs one evaluation against the full epoch of data.
+
+    Args:
+        sess: The session in which the model has been trained
+        data_placeholder: The data placeholder
+        label_placeholder: The label placeholder
+        data_set: The set of data to evaluate, from dp.load_data()
+        label_set: The set of label to evaluate, from dp.load_data()
+        fc: fc layer output, from oc.inference()
+
+    Return:
+        fc_values: The first full-connection layer's output
+
+    """
+
+    #And run one apoch of data
+    num_examples = len(label_set)
+    fc_values = []
+    steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
+    for step in range(steps_per_epoch):
+        feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
+        fc_v = sess.run(fc, feed_dict = feed_dict)
+        fc_values.extend(fc_v)
+
+    print('All the fc values extract done.')
+
+    return fc_values
+
 def run_training():
     """Train net model."""
     #Get the sets of data
@@ -146,7 +175,7 @@ def run_training():
     print('train_data: ' + str(np.min(train_data)))"""
 
     # Second method to get data
-    data = sio.loadmat('data8.mat')
+    data = sio.loadmat('F:\hsi_result\original\KSC\data\\2nd\data8.mat')
     train_data = data['train_data']
     train_label = np.transpose(data['train_label'])
     test_data = data['test_data']
@@ -164,7 +193,6 @@ def run_training():
     test_steps = []
     train_prediction = []
     test_prediction = []
-    test_fc = []
 
     with tf.Graph().as_default():
         #Generate placeholders
@@ -248,11 +276,13 @@ def run_training():
                 train_acc_steps.append(train_acc)
                 print('Test Data Eval:')
                 test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
-                test_loss, test_fc_value = sess.run([loss_entroy, fc], feed_dict = feed_dict_test)
+                test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
-                test_fc.append(test_fc_value)
+
+        train_fc_values = get_fc(sess, data_placeholder, label_placeholder, train_data, train_label, fc)
+        test_fc_values = get_fc(sess, data_placeholder, label_placeholder, test_data, test_label, fc)
 
     """print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
@@ -266,7 +296,7 @@ def run_training():
     sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), #'train_pos': train_pos,
                                                 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), #'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
-                                                'train_acc': train_acc_steps, 'train_fea': fc_value, 'test_fea': test_fc_value,
+                                                'train_acc': train_acc_steps, 'train_fea': train_fc_values, 'test_fea': test_fc_values,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 
