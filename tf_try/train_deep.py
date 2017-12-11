@@ -161,6 +161,7 @@ def run_training():
     print(np.shape(test_data))
     print(np.shape(test_label))"""
 
+    train_acc_steps = []
     test_loss_steps = []
     test_acc_steps = []
     test_steps = []
@@ -233,7 +234,8 @@ def run_training():
                 feed_dict_test = fill_feed_dict(step, test_data, test_label, data_placeholder, label_placeholder)
                 #Evaluate against the data set
                 print('Training Data Eval:')
-                _, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
+                train_acc, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data, train_label, softmax)
+                train_acc_steps.append(train_acc)
                 print('Test Data Eval:')
                 test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data, test_label, softmax)
                 test_loss = sess.run(loss_entroy, feed_dict = feed_dict_test)
@@ -248,7 +250,7 @@ def run_training():
 
     sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), 'train_pos': train_pos,
                                                 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), 'test_pos': test_pos,
-                                                'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
+                                                'test_loss': test_loss_steps, 'train_acc': train_acc_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 def main(_):
