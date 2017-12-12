@@ -42,7 +42,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             name='weights')
         biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
-        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE, 1])  #这里注意之后邻域变化需要修改band size的值, * 1, 5, 9
+        x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE * conv1_stride, 1])  #这里注意之后邻域变化需要修改band size的值, * 1, 5, 9
         print(dataset.get_shape())
         print(x_data.get_shape())
         #conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
@@ -120,13 +120,15 @@ def acc(softmax_re, labels):
 
    Return:
        accuracy: classification accuracy
+       accuracy_num: Classification correct numbers
    """
     # accuracy
     with tf.name_scope('accuracy'):
         correct_predicition = tf.equal(tf.argmax(softmax_re, 1), tf.argmax(labels, 1))
-        accuracy = tf.reduce_sum(tf.cast(correct_predicition, tf.float32))
+        accuracy_num = tf.reduce_sum(tf.cast(correct_predicition, tf.float32))
+        accuracy = tf.reduce_mean(tf.cast(correct_predicition, tf.float32))
 
-    return correct_predicition, accuracy
+    return accuracy, accuracy_num
 
 
 def training(loss, learning_rate):
