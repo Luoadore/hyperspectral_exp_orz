@@ -24,7 +24,7 @@ flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', 'F:\hsi_data\Indian Pine\Indian_pines_corrected.mat', 'Directory of data file.')
 flags.DEFINE_string('label_dir', 'F:\hsi_data\Indian Pine\Indian_pines_gt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', 'F:\\tf-try\\result', 'The train result save file.')
+flags.DEFINE_string('train_dir', 'F:\\tf-try\\result\exp1', 'The train result save file.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -127,7 +127,7 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
 
     return precision, predicition
 
-def get_fc(sess, data_placeholder, label_placeholder, data_set, label_set, fc):
+def get_feature(sess, data_placeholder, label_placeholder, data_set, label_set, conv1):
     """Runs one evaluation against the full epoch of data.
 
     Args:
@@ -145,16 +145,16 @@ def get_fc(sess, data_placeholder, label_placeholder, data_set, label_set, fc):
 
     #And run one apoch of data
     num_examples = len(label_set)
-    fc_values = []
+    feature_values = []
     steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
     for step in range(steps_per_epoch):
         feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
-        fc_v = sess.run(fc, feed_dict = feed_dict)
-        fc_values.extend(fc_v)
+        fea_v = sess.run(conv1, feed_dict = feed_dict)
+        feature_values.extend(fea_v)
 
-    print('All the fc values extract done.')
+    print('All the feature values extract done.')
 
-    return fc_values
+    return feature_values
 
 def run_training():
     """Train net model."""
@@ -281,8 +281,8 @@ def run_training():
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
 
-        train_fc_values = get_fc(sess, data_placeholder, label_placeholder, train_data, train_label, fc)
-        test_fc_values = get_fc(sess, data_placeholder, label_placeholder, test_data, test_label, fc)
+        train_fea_values = get_feature(sess, data_placeholder, label_placeholder, train_data, train_label, conv1)
+        test_fea_values = get_feature(sess, data_placeholder, label_placeholder, test_data, test_label, conv1)
 
     """print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
@@ -296,7 +296,7 @@ def run_training():
     sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), #'train_pos': train_pos,
                                                 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), #'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
-                                                'train_acc': train_acc_steps, 'train_fea': train_fc_values, 'test_fea': test_fc_values,
+                                                'train_acc': train_acc_steps, 'train_fea': train_fea_values, 'test_fea': test_fea_values,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 
