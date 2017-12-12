@@ -130,6 +130,35 @@ def do_eval(sess, eval_correct, data_placeholder, label_placeholder, data_set, l
 
     return precision, prediction
 
+def get_feature(sess, data_placeholder, label_placeholder, data_set, label_set, conv4):
+    """Runs one evaluation against the full epoch of data.
+
+    Args:
+        sess: The session in which the model has been trained
+        data_placeholder: The data placeholder
+        label_placeholder: The label placeholder
+        data_set: The set of data to evaluate, from dp.load_data()
+        label_set: The set of label to evaluate, from dp.load_data()
+        conv4: last convolutional layer output, from oc.inference()
+
+    Return:
+        feature_values: The first full-connection layer's output
+
+    """
+
+    #And run one apoch of data
+    num_examples = len(label_set)
+    feature_values = []
+    steps_per_epoch = math.ceil(num_examples / FLAGS.batch_size)
+    for step in range(steps_per_epoch):
+        feed_dict = fill_feed_dict(step, data_set, label_set, data_placeholder, label_placeholder)
+        fea_v = sess.run(conv4, feed_dict = feed_dict)
+        feature_values.extend(fea_v)
+
+    print('All the feature values extract done.')
+
+    return feature_values
+
 def run_training():
     """Train net model."""
     # Get the sets of data
@@ -172,7 +201,7 @@ def run_training():
         #Generate placeholders
         data_placeholder, label_placeholder = placeholder_inputs(FLAGS.batch_size)
         #Build a Graph that computes predictions from the inference model
-        softmax = dc.inference(data_placeholder, FLAGS.conv1_uints, FLAGS.conv1_kernel, FLAGS.conv1_stride,
+        softmax, conv4 = dc.inference(data_placeholder, FLAGS.conv1_uints, FLAGS.conv1_kernel, FLAGS.conv1_stride,
                                FLAGS.conv2_uints, FLAGS.conv3_uints, FLAGS.conv4_uints, FLAGS.fc1_uints, FLAGS.fc2_uints)
         #Add to the Graph the Ops for loss calculation
         loss_entroy = dc.loss(softmax, label_placeholder)
@@ -243,6 +272,9 @@ def run_training():
                 test_acc_steps.append(test_acc)
                 test_loss_steps.append(test_loss)
 
+        train_fea_values = get_feature(sess, data_placeholder, label_placeholder, train_data, train_label, conv4)
+        test_fea_values = get_feature(sess, data_placeholder, label_placeholder, test_data, test_label, conv4)
+
     print('test loss: ' + str(test_loss_steps))
     print('test acc: ' + str(test_acc_steps))
     print('test step: ' + str(test_steps))
@@ -251,6 +283,7 @@ def run_training():
     sio.savemat(FLAGS.train_dir + '\data.mat', {'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, dc.NUM_CLASSES), 'train_pos': train_pos,
                                                 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, dc.NUM_CLASSES), 'test_pos': test_pos,
                                                 'test_loss': test_loss_steps, 'train_acc': train_acc_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
+                                                'train_fea': train_fea_values, 'test_fea': test_fea_values,
                                                 'train_prediction': train_prediction, 'test_prediction': test_prediction})
 
 def main(_):
