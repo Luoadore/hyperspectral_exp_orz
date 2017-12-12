@@ -24,7 +24,8 @@ import tensorflow as tf
 import math
 
 # labels
-NUM_CLASSES = 13
+NUM_CLASSES_REAL = 13
+NUM_CLASSES = 26
 # hyperspectral bands
 BANDS_SIZE = 176
 
@@ -135,9 +136,9 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
         biases = tf.Variable(tf.zeros([fc1_uints]),
                              name='biases')
         mpool_flat = tf.reshape(mpool3, [-1, input_uints])
-        mpool_flat_drop = tf.nn.dropout(mpool_flat, keep_prob = 0.5)
+        #mpool_flat_drop = tf.nn.dropout(mpool_flat, keep_prob = 0.5)
         #fc1 = tf.nn.relu(tf.matmul(mpool_flat_drop, weights) + biases)
-        fc1 = tf.sigmoid(tf.matmul(mpool_flat_drop, weights) + biases)
+        fc1 = tf.sigmoid(tf.matmul(mpool_flat, weights) + biases)
 
     # fc2
     with tf.name_scope('fc2'):
@@ -147,9 +148,9 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
             name='weights')
         biases = tf.Variable(tf.zeros([fc2_uints]),
                              name='biases')
-        fc1_drop = tf.nn.dropout(fc1, keep_prob = 0.5)
+        #fc1_drop = tf.nn.dropout(fc1, keep_prob = 0.5)
         #fc2 = tf.nn.relu(tf.matmul(fc1_drop, weights) + biases)
-        fc2 = tf.sigmoid(tf.matmul(fc1_drop, weights) + biases)
+        fc2 = tf.sigmoid(tf.matmul(fc1, weights) + biases)
 
     # softmax regression
     with tf.name_scope('softmax_re'):
@@ -161,7 +162,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, conv2_uints, con
                              name='biases')
         softmax_re = tf.nn.softmax(tf.matmul(fc2, weights) + biases)
 
-    return softmax_re
+    return softmax_re, conv4
 
 
 def loss(softmax_re, labels):
@@ -196,15 +197,38 @@ def acc(softmax_re, labels):
 
    Return:
        accuracy: classification accuracy
+       accuracy_num: Classification correct numbers
    """
     # accuracy
     with tf.name_scope('accuracy'):
         correct_predicition = tf.equal(tf.argmax(softmax_re, 1), tf.argmax(labels, 1))
-        #accuracy = tf.reduce_mean(tf.cast(correct_predicition, tf.float32))
-        accuracy = tf.reduce_sum(tf.cast(correct_predicition, tf.float32))
+        accuracy = tf.reduce_mean(tf.cast(correct_predicition, tf.float32))
+        accuracy_num = tf.reduce_sum(tf.cast(correct_predicition, tf.float32))
 
-    return accuracy
+    return accuracy, accuracy_num
 
+def acc_extend(softmax_re, labels):
+    """Calculates the accuracy. Because of extending original classes to two times, so the number of the corrections include
+      two types: label equal and (label + classes)、label equal.
+
+   Args:
+       softmax_re: net forward output tensor, float - [batch_size, NUM_CLASSES]
+       labels: labels tensor,
+
+   Return:
+       accuracy: classification accuracy
+       accuracy_num: Classification correct numbers
+   """
+    # accuracy
+    with tf.name_scope('accuracy'):
+        correct_predicition = tf.equal(tf.argmax(softmax_re, 1), tf.argmax(labels, 1))
+        correct_predicition = tf.cast(correct_predicition, tf.float32)
+        correct_predicition += tf.cast(tf.equal(tf.argmax(softmax_re, 1) + NUM_CLASSES_REAL, tf.argmax(labels, 1)), tf.float32)
+        correct_predicition += tf.cast(tf.equal(tf.argmax(softmax_re, 1), tf.argmax(labels, 1) + NUM_CLASSES_REAL), tf.float32)
+        accuracy = tf.reduce_mean(correct_predicition)
+        accuracy_num = tf.reduce_sum(correct_predicition)
+
+    return accuracy, accuracy_num
 
 def training(loss, learning_rate):
     """Sets up the training Ops.
