@@ -26,8 +26,8 @@ def extract_data(data_file, labels_file, neighbor):
     global data_position
     data = sio.loadmat(data_file)
     label = sio.loadmat(labels_file)
-    data_o = data['DataSet']
-    labels = label['ClsID']
+    data_o = data['indian_pines_corrected']
+    labels = label['indian_pines_gt']
     classes = np.max(labels)
     print('there are ' + str(classes) + ' class in the data set.')
     print(labels.shape)
@@ -243,11 +243,17 @@ def load_data(dataset, datapos, ratio):
         testingNumber = int(len(eachclass) - trainingNumber)
         #print('the ' + str(classes) +' class has ' + str(trainingNumber) + ' training examples and ' + str(testingNumber) + ' testing examples.')
         for i in range(trainingNumber):
-            train_data.append(eachclass[i])
+            data = eachclass[i]
+            data[data >= 65534] = 0
+            train_data.append(data)
+            # train_data.append(eachclass[i])
             train_label.append(classes)
             train_pos.append(datapos[classes][i])
         for i in range(testingNumber):
-            test_data.append(eachclass[trainingNumber + i])
+            data = eachclass[trainingNumber + i]
+            data[data >= 65534] = 0
+            test_data.append(data)
+            #test_data.append(eachclass[trainingNumber + i])
             test_label.append(classes)
             test_pos.append(datapos[classes][trainingNumber + i])
 
