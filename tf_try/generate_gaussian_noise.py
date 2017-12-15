@@ -4,9 +4,10 @@ Due to the lack of training samples, there to generate Gaussian noise and extend
 """
 
 import data_preprocess_pos as dp
-import data_analysis as da
-import read_data as rd
+import python_analyze.data_analysis as da
+import python_analyze.read_data as rd
 import numpy as np
+import math
 
 def generate_gaussian_dataset(file, spectral):
     """
@@ -50,4 +51,69 @@ def generate_gaussian_dataset(file, spectral):
     data, label, position = dp.shuffling2(data, label, position)
 
     return data, label, position
+
+def e_step(data, pi_k, miu, sigma):
+    """
+    The E step of EM, to calculate posterior probability.
+
+    Args:
+        data: Entire data which needs fitting to GMM.
+        pi_k: The prior probability of two components.
+        miu: The means of two components.
+        sigma: The std of two components.
+
+    Return:
+        posterior_prob: Size of num * component.
+    """
+
+
+def m_step(data, pi_k, miu, sigma):
+    """
+    The M step of EM, to update three parameters include pi, mean, std using maximum likehood function.
+    Args:
+        data: Entire data which needs fitting to GMM.
+        pi_k: The prior probability of two components.
+        miu: The means of two components.
+        sigma: The std of two components.
+
+    Return:
+        pi_k_new, miu_new, sigma_new: The updated parameters.
+    """
+
+def gmm(data, iter):
+    """
+    算法迭代iter次，或者三个参数均不再变化时，拟合混合高斯模型, two component.
+
+    Args:
+        data: Entire data which needs fitting to GMM.
+        iter: Iterations for fitting.
+
+    Return:
+        data_generated: The original `1data which 
+
+    """
+    data_num = len(data)
+    miu = np.random.random(2)
+    sigma = np.random.random(2)
+    pi_k = [0.5, 0.5]
+    expectations = np.zeros((data_num, 2))
+    print('The initial mean: ' + str(miu))
+    print('The initial std: ' + str(sigma))
+    print('The initial pi: ' + str(pi_k))
+
+    for i in range(iter):
+        posterior_prob = e_step(data, pi_k, miu, sigma)
+        pi_k_new, miu_new, sigma_new = m_step(data, pi_k, miu, sigma)
+
+        if pi_k_new != pi_k or miu_new != miu or sigma_new != sigma:
+            pi_k = pi_k_new
+            miu = miu_new
+            sigma = sigma_new
+        else:
+            break
+
+        if i % 100 == 0:
+            print('The present params(mean, std, pi): ' + str(miu) + str(sigma) + str(pi_k))
+
+        print('The final params: mean' + str(miu) + ', std ' + str(sigma) + ', pi ' + str(pi_k))
 
