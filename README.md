@@ -1,8 +1,9 @@
-##hyperspectral_exp_orz##
+# hyperspectral_exp_orz
 
-author：Luo Ya'nan
+*author：Luo Ya'nan*
 
-/caffe_try
+* caffe_try
+
 Classification use caffe's python API.
 !!!not correct yet.
 
@@ -11,7 +12,8 @@ Classification use caffe's python API.
     save_feature: Save fc's feature maps and predicitions.
     validate_param: Validate whether the paramerters of the deploy and train_test prototxt's net are the same.
 
-/mnist
+* mnist
+
 Try mnist data set use caffe's python API, get correct result.
 
     load_mnist_data: Transform mnist data into the visiable form.
@@ -22,7 +24,8 @@ Try mnist data set use caffe's python API, get correct result.
     mnist_deploy: Prediction use, which is not include data layer.
     mnist_mnist: Train net use Caffe command.
 
-/tf_try
+* tf_try
+
 Classification use Tensorflow.
 
     data_preprocessing: Extract and divide the original data set into train and test data set according to ratio.
