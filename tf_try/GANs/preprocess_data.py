@@ -7,7 +7,6 @@
 import scipy.io as sio
 import numpy as np
 from random import shuffle
-import math
 from sklearn import preprocessing as sp
 
 def extract_data(data_file, labels_file):
@@ -31,8 +30,8 @@ def extract_data(data_file, labels_file):
     global data_position
     data = sio.loadmat(data_file)
     label = sio.loadmat(labels_file)
-    data_o = data['indian_pines_corrected']
-    labels = label['indian_pines_gt']
+    data_o = data['DataSet']
+    labels = label['ClsID']
     classes = np.max(labels)
     print('there are ' + str(classes) + ' class in the data set.')
     print(labels.shape)
@@ -47,6 +46,8 @@ def extract_data(data_file, labels_file):
     data_pos = []
     for mark in range(classes):
         data_pos.append([])
+
+    data_norm = []
 
     for i in range(rows):
         for j in range(cols):
@@ -88,12 +89,36 @@ def extract_data(data_file, labels_file):
                     data_temp = np.append(data_temp, data_t)
 
                 print('8 neighbors extract done.')
-                data_list[label - 1].append(data_temp)
+                data_list[label - 1].append(remove_singular(data_temp))
                 data_pos[label - 1].append(data_position)
+                data_norm.append(remove_singular(data_temp))
 
     print('Extract data done.')
     data_list, data_pos = shuffling1(data_list, data_pos)
-    return data_list, data_pos
+
+    # normalization
+    datalist = []
+    scaler = sp.StandardScaler().fit(data_norm)
+    for each in data_list:
+        each = scaler.transform(each)
+        print('Normalization done.')
+        datalist.append(each)
+
+    print(datalist[0][0])
+
+    return datalist, data_pos
+
+def remove_singular(value):
+    """
+    Remove singular if value is bigger than 65534.
+    Arg:
+        value: Single value of original data from extract_data()
+    Return:
+        value(correction): Value modification, always 0.
+    """
+    value[value >= 65534] = 0
+    return value
+
 
 def shuffling1(data_set, data_pos):
     """Rewrite the shuffle function.
