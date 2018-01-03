@@ -5,14 +5,13 @@ Using generative adversarial networks (GAN) to generate hyperspectral data from 
 
 import tensorflow as tf
 
-
 # training parameters
 iterations = 100000
-batch_size = None
+batch_size = 100
 learning_rate = 0.0002
 
 # Network parameters
-data_dim = 176 # single-pixel
+data_dim = 204 # single-pixel, PU204, KSC176
 generator_hidden_uints = 256
 discriminator_hidden_uints = 256
 noise_dim = 100 # noise data points
@@ -25,8 +24,8 @@ def glorot_init(shape):
 weights = {
     'gen_hidden1' : tf.Variable(glorot_init([noise_dim, generator_hidden_uints])),
     'gen_out': tf.Variable(glorot_init([generator_hidden_uints, data_dim])),
-    'disc_hidden': tf.Variable(glorot_init([data_dim, discriminator_hidden_uints])),
-    'disc_out': tf.Variable([discriminator_hidden_uints, 1]),
+    'disc_hidden1': tf.Variable(glorot_init([data_dim, discriminator_hidden_uints])),
+    'disc_out': tf.Variable(glorot_init([discriminator_hidden_uints, 1])),
 }
 biases = {
     'gen_hidden1': tf.Variable(tf.zeros([generator_hidden_uints])),
