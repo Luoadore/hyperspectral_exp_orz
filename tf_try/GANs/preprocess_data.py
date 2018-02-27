@@ -21,13 +21,7 @@ def extract_data(data_file, labels_file):
         data_list: Useful data set for build model and test, while the [index + 1] repersent its corresponging label
         data_pos: Data position in ClsID, include raw and col information
     """
-
-    ############################################################
-    #需不需要先做预处理，数据标准化和除去奇异值
-    #
-    ############################################################
-
-    global data_position
+    global classes
     data = sio.loadmat(data_file)
     label = sio.loadmat(labels_file)
     data_o = data['DataSet']
@@ -55,43 +49,9 @@ def extract_data(data_file, labels_file):
             if label != 0:
                 center_data = data_o[i, j]
                 data_position = [i, j]
-
-                ##################################
-                #The neighbors-structer:
-                #  data1      data2      data3
-                #  data4   center_data   data5
-                #  data6      data7      data8
-                ##################################
-
-                #judgment standard, how to choose neighbors' coordinates
-                lessThan = lambda x: x - 1 if x > 0 else 0
-                greaterThan_row = lambda x: x + 1 if x < rows - 1 else rows - 1
-                greaterThan_col = lambda x: x + 1 if x < cols - 1 else cols - 1
-
-                data_temp = []
-                for each in range(bands):
-                    data1 = data_o[lessThan(i), lessThan(j)][each]
-                    data2 = data_o[lessThan(i), j][each]
-                    data3 = data_o[lessThan(i), greaterThan_col(j)][each]
-                    data4 = data_o[i, lessThan(j)][each]
-                    data5 = data_o[i, greaterThan_col(j)][each]
-                    data6 = data_o[greaterThan_row(i), lessThan(j)][each]
-                    data7 = data_o[greaterThan_row(i), j][each]
-                    data8 = data_o[greaterThan_row(i), greaterThan_col(j)][each]
-                    data_1 = np.append(data1, data2)
-                    data_2 = np.append(data3, data4)
-                    data_3 = np.append(data_1, data_2)
-                    data_4 = np.append(data_3, center_data[each])
-                    data_5 = np.append(data5, data6)
-                    data_6 = np.append(data7, data8)
-                    data_7 = np.append(data_4, data_5)
-                    data_t = np.append(data_7, data_6)
-                    data_temp = np.append(data_temp, data_t)
-
-                print('8 neighbors extract done.')
-                data_list[label - 1].append(remove_singular(data_temp))
+                data_list[label - 1].append(remove_singular(center_data))
                 data_pos[label - 1].append(data_position)
-                data_norm.append(remove_singular(data_temp))
+                data_norm.append(remove_singular(center_data))
 
     print('Extract data done.')
     data_list, data_pos = shuffling1(data_list, data_pos)
@@ -118,7 +78,6 @@ def remove_singular(value):
     """
     value[value >= 65534] = 0
     return value
-
 
 def shuffling1(data_set, data_pos):
     """Rewrite the shuffle function.
@@ -149,3 +108,33 @@ def shuffling1(data_set, data_pos):
 
     return dataset, datapos
 
+def onehot_label(label, num_labels, num_class):
+    """To transfer labels into one-hot values.
+
+    Arg:
+        label: Original label.
+        num_labels: Total labels.
+        num_class: Total classes of data.
+
+    Return:
+        onehot_labels: One-hot labels to fit in network.
+    """
+    onehot_labels = np.zeros((num_labels, num_class), float)
+    for i in range(num_labels):
+        onehot_labels[i][label] = 1
+    print('One hot label transformed done.')
+
+    return onehot_labels
+
+if __name__ == '__main__':
+    data_file = 'F:\hsi_data\KennedySpaceCenter(KSC)\KSCData.mat'
+    label_file = 'F:\hsi_data\KennedySpaceCenter(KSC)\KSCGt'
+    hsi_data = extract_data(data_file, label_file)
+    print(classes)
+    for i in range(classes):
+        data = hsi_data[0][i]
+        label = onehot_label(i, len(data), classes)
+        sio.savemat('D:\hsi_gan_result\KSC\hsi_data' + str(i) + '.mat', {'data': data, 'label': label})
+        print('Save ' + str(i) + '-class data done.')
+
+    print('Yeah.')
