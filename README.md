@@ -37,9 +37,18 @@
     - python_analyze
        - center_or_border_statistics: Get center and border samples statistics
        - data_analysis: Get data mean, std, etc. And plot corresponding curves. 
+       - draw_test: Visualization of test samples' classification.
+       - is_Generator: Judge whether GAN get good training.
        - plotting: Plotting accuracy and loss curves verses iterations.
        - read_data: Get the data after train and test.
        - t_sne: Dimensionality reduction.
+    
+    - GANs
+       - cgan_tfonly.py: Conditional GAN.
+       - gans_config: GAN configrations. 
+       - generator: generator of GANs.
+       - preprocess_data: Preprocessing data and save .mat for each class.
+       - train_gans: train GANs.
      
   
     - data_preprocessing: Extract and divide the original data set into train and test data set according to ratio.
