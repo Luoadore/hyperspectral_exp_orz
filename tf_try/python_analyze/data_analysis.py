@@ -181,28 +181,31 @@ def plot_hist(idata, data_name):
             plt.clf()
             plt.cla()
 
+"""
 if __name__ == '__main__':
     
     root_split = 'I:\\try\\result_data\KSCdata'
     root_original = 'D:\hsi\dataset\Kennedy Space Center (KSC)'
 
-    """data_o = sio.loadmat(root_original + '\KSCData.mat')
+    data_o = sio.loadmat(root_original + '\KSCData.mat')
     data = data_o['DataSet']
     label_o = sio.loadmat(root_original + '\KSCGt.mat')
-    label = label_o['ClsID']"""
+    label = label_o['ClsID']
 
-    """# plot mean and std
+    # plot mean and std
     train_data, train_label, train_pred, train_pos, test_data, test_label, test_pred, test_pos = rd.get_data(root_split + '\data1.mat')
     train_mean, train_std = get_statistic_by_class(train_data, train_label)
     test_mean, test_std = get_statistic_by_class(test_data, test_label)
     plot_mean_line(train_mean, 'Data1')
-    plot_std_line(train_std, 'KSC_Data1')"""
+    plot_std_line(train_std, 'KSC_Data1')
+
     # plot histogram
     data_set, _ = dp.extract_data(root_original + '\KSCData.mat', root_original + '\KSCGt.mat', 0)
     data = np.array(data_set)
     print(type(data))
     plot_hist(data, 'ksc')
-    """# plot misclassification
+
+    # plot misclassification
     train_conf_matrix = rd.get_confuse_matrix(train_label, train_pred)
     test_conf_matrix = rd.get_confuse_matrix(test_label, test_pred)
     print('train conf matrix')
@@ -218,10 +221,10 @@ if __name__ == '__main__':
     plot_misclassify_mean(test_mean, te_mis_class, te_mis_bands, 'KSC_test')
 
     sio.savemat(root_split + '\misData_info.mat', {'tr_mis_class': tr_mis_class, 'tr_mis_position': tr_mis_position, 'tr_mis_bands': tr_mis_bands, 'tr_mis_neighbors': tr_mis_neighbors, 'train_conf_matrix': train_conf_matrix, 
-                                                   'te_mis_class': te_mis_class, 'te_mis_position': te_mis_position, 'te_mis_bands': te_mis_bands, 'te_mis_neighbors': te_mis_neighbors, 'test_conf_matrix': test_conf_matrix})"""
+                                                   'te_mis_class': te_mis_class, 'te_mis_position': te_mis_position, 'te_mis_bands': te_mis_bands, 'te_mis_neighbors': te_mis_neighbors, 'test_conf_matrix': test_conf_matrix})
 
     #plot according calss
-    """pu_train_data, pu_train_label, _, _, pu_test_data, pu_test_label, _, _ = rd.get_data('pu_data1.mat')
+    pu_train_data, pu_train_label, _, _, pu_test_data, pu_test_label, _, _ = rd.get_data('pu_data1.mat')
     pu_train_mean, _ = get_statistic_by_class(pu_train_data, pu_train_label)
     pu_test_mean, _ = get_statistic_by_class(pu_test_data, pu_test_label)
     pc_train_data, pc_train_label, _, _, pc_test_data, pc_test_label, _, _ = rd.get_data('pc_data1.mat')
@@ -230,6 +233,6 @@ if __name__ == '__main__':
     acc_class = [[1, 3, 'Trees'], [2, 1, 'Meadows'], [4, 5, 'Bare soil'], 
                  [5, 0, 'Asphalt'], [6, 6, 'Bitumen'], [8, 8, 'Shadows']]
     plot_diffData_sameClass(pc_train_mean, pu_train_mean, acc_class, 'train')
-    plot_diffData_sameClass(pc_test_mean, pu_test_mean, acc_class, 'test')"""
+    plot_diffData_sameClass(pc_test_mean, pu_test_mean, acc_class, 'test')
     
-    print('Done.') 
+    print('Done.')"""

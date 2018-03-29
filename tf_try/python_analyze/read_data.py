@@ -35,6 +35,7 @@ def get_data(data_file):
     #test_pos = data['test_pos']
     test_fea = data['test_fea']
 
+    # return train_data, train_label, train_pred, train_pos, train_fea, test_data, test_label, test_pred, test_pos, test_fea
     return train_data, train_label, train_pred, train_fea, test_data, test_label, test_pred, test_fea
 
 def get_confuse_matrix(label_gt, label_pred):

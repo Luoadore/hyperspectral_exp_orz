@@ -20,7 +20,7 @@ def mse_like(path, fea_mean):
     for i in range(num):
         for j in range(dimen):
             conf[i] = conf[i] + np.square(fea_mean[j] - samples_data[i][j])
-    return conf
+    return conf / dimen
 
 if __name__ == '__main__':
     data_path = 'D:\hsi_gan_result\KSC\hsi_data0.mat'
@@ -28,4 +28,4 @@ if __name__ == '__main__':
     fea_mean, _ = get_statistic(data_path)
 
     conf = mse_like(sample_path, fea_mean)
-    print(conf)
+    print(sum(conf) / len(conf))

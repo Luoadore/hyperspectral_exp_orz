@@ -130,9 +130,9 @@ def square5_category(labels):
     return center_points, border_points
 
 if __name__ == '__main__':
-    root = 'D:/hsi/dataset/'
+    root = 'F:\hsi_data\Salinas scene'
     # data = sio.loadmat(root + 'Kennedy Space Center (KSC)/KSCData.mat')
-    label = sio.loadmat(root + 'Kennedy Space Center (KSC)/KSCGt.mat')
+    label = sio.loadmat(root + '\SAGt.mat')
     labels = label['ClsID']
     classes = np.max(labels)
 

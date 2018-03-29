@@ -5,6 +5,7 @@ Draw the ground turth label image and the test result image.
 from PIL import Image
 import scipy.io as sio
 import numpy as np
+import matplotlib.pyplot as plt
 
 # RGB color
 colors = [[0, 0, 0],
@@ -23,11 +24,19 @@ colors = [[0, 0, 0],
           [50,205,50],
           [199,21,133],
           [0,0,139],
-          [255, 255, 255],
           [99, 184, 255],
+          [255, 255, 255],
           [205, 55, 0],
           [0, 255, 127]
           ]
+
+def draw_picture(file_name, image_name):
+    """
+    Draw the HSI as a color image.
+    """
+    data_gt = sio.loadmat(file_name)['DataSet']
+    image_data = data_gt[:, :, 0:2]
+    plt.imshow(image_data)
 
 def draw_groundturth(file_name, image_name):
     """
@@ -41,8 +50,8 @@ def draw_groundturth(file_name, image_name):
         image_len: Image's length.
         image_wid: Image's width.
     """
-    label_gt = sio.loadmat(file_name)['ClsID']
-    #label_gt = sio.loadmat(file_name)['indian_pines_gt']
+    #label_gt = sio.loadmat(file_name)['ClsID']
+    label_gt = sio.loadmat(file_name)['indian_pines_gt']
     x, y = label_gt.shape
     im = Image.new("RGB", (x, y))
     for i in range(x):
@@ -70,12 +79,14 @@ def draw_test(pos_dir, label_dir, image_len, image_wid, image_name):
     data = sio.loadmat(label_dir)
     label = np.transpose(data['test_label'])
     pred = np.transpose(data['test_prediction'])
+    #label = np.transpose(data['te_lab'])
+    #pred = np.transpose(data['te_pred'])
     test_num = len(label)
 
     im = Image.new("RGB", (image_len, image_wid))
 
     for i in range(test_num):
-        im.putpixel(pos[i], (colors[label[i][0]][0], colors[label[i][0]][1], colors[label[i][0]][2]))
+        im.putpixel(pos[i], (colors[label[i][0] + 1][0], colors[label[i][0] + 1][1], colors[label[i][0] + 1][2]))
     for i in range(image_len):
         for j in range(image_wid):
             if im.getpixel((i, j)) == (0, 0, 0):
@@ -84,7 +95,7 @@ def draw_test(pos_dir, label_dir, image_len, image_wid, image_name):
     print('Done.')
 
     for i in range(test_num):
-        im.putpixel(pos[i], (colors[pred[i][0]][0], colors[pred[i][0]][1], colors[pred[i][0]][2]))
+        im.putpixel(pos[i], (colors[int(pred[i][0] + 1)][0], colors[int(pred[i][0] + 1)][1], colors[int(pred[i][0] + 1)][2]))
     for i in range(image_len):
         for j in range(image_wid):
             if im.getpixel((i, j)) == (0, 0, 0):
@@ -95,9 +106,24 @@ def draw_test(pos_dir, label_dir, image_len, image_wid, image_name):
 
 if __name__ == '__main__':
     # load data
-    posdir = 'F:\hsi_result\original\KSC\data\\1st\data8.mat'
-    labeldir = 'F:\hsi_result\original\KSC\data\\1st\data8.mat'
-    original_label_dir = 'F:\hsi_data\Kennedy Space Center (KSC)\KSCGt.mat'
-    # draw ground-turth
-    x, y = draw_groundturth(original_label_dir, 'KSC')
-    draw_test(posdir, labeldir, x, y, 'KSC')
+    ksc_posdir = 'F:\data_pos\KSCdata.mat'
+    ksc_labeldir = 'E:\exp_result\exp_result\KSC\pred_2.mat'
+    ip_posdir = 'F:\data_pos\IPdata.mat'
+    ip_labeldir = 'E:\exp_result\IP\exp_12\data.mat'
+    """pu_posdir = 'F:\data_pos\PUdata.mat'
+    pu_labeldir = 'E:\exp_result\exp_result\PU\pred_1.mat'
+    sa_posdir = 'F:\data_pos\SAdata.mat'
+    sa_labeldir = 'E:\exp_result\exp_result\SA\pred_3.mat'
+    ksc_label_dir = 'F:\hsi_data\KennedySpaceCenter(KSC)\KSCGt.mat'"""
+    ip_label_dir = 'F:\hsi_data\Indian Pine\Indian_pines_gt.mat'
+    """pu_label_dir = 'F:\hsi_data\Pavia University scene\PUGt.mat'
+    sa_label_dir = 'F:\hsi_data\Salinas scene\SAGt.mat'
+    # draw ground-turth and test
+    x, y = draw_groundturth(ksc_label_dir, 'KSC')
+    draw_test(ksc_posdir, ksc_labeldir, x, y, 'KSC')
+    x, y = draw_groundturth(pu_label_dir, 'PU')
+    draw_test(pu_posdir, pu_labeldir, x, y, 'PU')
+    x, y = draw_groundturth(sa_label_dir, 'SA')
+    draw_test(sa_posdir, sa_labeldir, x, y, 'SA')"""
+    x, y = draw_groundturth(ip_label_dir, 'IP')
+    draw_test(ip_posdir, ip_labeldir, x, y, 'IP')
