@@ -107,10 +107,13 @@ G_sample = generator(Z, y)
 D_real, D_logit_real = discriminator(X, y)
 D_fake, D_logit_fake = discriminator(G_sample, y)
 
-D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_real, labels = tf.ones_like(D_logit_real)))
-D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.zeros_like(D_logit_fake)))
-D_loss = D_loss_real + D_logit_real
-G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.ones_like(D_logit_fake)))
+D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_real, labels = tf.ones_like(D_real)))
+D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.zeros_like(D_fake)))
+D_loss = D_loss_real + D_loss_fake
+G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.ones_like(D_fake)))
+tf.summary.scalar('G_loss', G_loss)
+tf.summary.scalar('D_loss', D_loss)
+summary_op = tf.summary.merge_all()
 
 D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list = theta_D)
 G_solver = tf.train.AdamOptimizer().minimize(G_loss, var_list = theta_G)
@@ -123,7 +126,10 @@ if FLAGS.is_train:
     sess.run(tf.global_variables_initializer())
 else:
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_path)
-    # saver.restore(sess, ckpt.model_checkpoint_path)
+    #model_file=tf.train.latest_checkpoint(FLAGS.model_path)
+    #saver.restore(sess, model_file)
+
+summary_writer = tf.summary.FileWriter(FLAGS.model_path, sess.graph)
 
 if os.path.exists(os.path.join(FLAGS.model_path + '.index')):
     saver.restore(sess, FLAGS.model_path)
@@ -169,6 +175,9 @@ def main(_):
                 print('D_loss: ' + str(D_loss_curr))
                 print('G_loss: ' + str(G_loss_curr))
                 saver.save(sess, FLAGS.model_path)
+                summary_str = sess.run(summary_op, feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
+                summary_writer.add_summary(summary_str, it)
+                summary_writer.flush()
 
     else:
         test_samples_gen = test()
