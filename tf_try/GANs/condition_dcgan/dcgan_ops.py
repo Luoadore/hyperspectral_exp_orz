@@ -59,3 +59,6 @@ def de_conv(data, input_uints, output_uints, kernels, stride, name):
     Return:
 
     """
+
+def batch_normal(input , scope="scope" , reuse=False):
+    return batch_norm(input, epsilon=1e-5, decay=0.9, scale=True, scope=scope, reuse = reuse, updates_collections=None)
