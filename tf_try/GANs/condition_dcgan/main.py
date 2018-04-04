@@ -3,6 +3,7 @@
 import tensorflow as tf
 import os
 from preprocess import dataset
+from c_dcgan import CGAN
 
 flags = tf.app.flags
 flags.DEFINE_string("sample_dir", "samples_for_test", "the dir of sample images")
@@ -25,7 +26,10 @@ if os.path.exists(FLAGS.model_path) == False:
     os.makedirs(FLAGS.model_path)
 
 def main(_):
-
+    data_object = dataset('KSC')
+    cg = CGAN(data_ob = data_object, sample_dir = FLAGS.sample_dir, output_size=FLAGS.output_size,
+              learn_rate=FLAGS.learn_rate, batch_size=FLAGS.batch_size, z_dim=FLAGS.z_dim,
+              y_dim=FLAGS.y_dim, log_dir=FLAGS.log_dir, model_path=FLAGS.model_path)
     if FLAGS.op == 0:
         cg.train()
     else:
