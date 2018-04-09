@@ -13,10 +13,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # param config
 flags = tf.app.flags
-flags.DEFINE_integer('iter', 1, 'Iteration to train.')
+flags.DEFINE_integer('iter', 1000000, 'Iteration to train.')
 flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/cgan.model', 'Save model path.')
-flags.DEFINE_boolean('is_train', False, 'Train or test.')
+flags.DEFINE_boolean('is_train', True, 'Train or test.')
 flags.DEFINE_integer('test_number', 0, 'The class that want to generate, if None, generate randomly.')
 flags.DEFINE_string('train_dir', 'D:\hsi_gan_result\KSC\hsi_data0.mat', 'Train data path.')
 FLAGS = flags.FLAGS
@@ -107,10 +107,10 @@ G_sample = generator(Z, y)
 D_real, D_logit_real = discriminator(X, y)
 D_fake, D_logit_fake = discriminator(G_sample, y)
 
-D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_real, labels = tf.ones_like(D_real)))
-D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.zeros_like(D_fake)))
+D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_real, labels = tf.ones_like(D_logit_real)))
+D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.zeros_like(D_logit_fake)))
 D_loss = D_loss_real + D_loss_fake
-G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.ones_like(D_fake)))
+G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.ones_like(D_logit_fake)))
 tf.summary.scalar('G_loss', G_loss)
 tf.summary.scalar('D_loss', D_loss)
 summary_op = tf.summary.merge_all()
@@ -161,11 +161,17 @@ def test():
 
 def main(_):
     if FLAGS.is_train:
+        g_loss_value = []
+        d_loss_value = []
         for it in range(FLAGS.iter):
-            X_mb, y_mb = next_batch(FLAGS.batch_size, it, spectral_data, spectral_labels)
+            for i in range(10):
+                X_mb, y_mb = next_batch(FLAGS.batch_size, it * 10 + i, spectral_data, spectral_labels)
 
+                Z_sample = sample_Z(y_mb.shape[0], Z_dim)
+                _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
+                if it % 1000 == 0:
+                    d_loss_value.append(D_loss_curr)
             Z_sample = sample_Z(y_mb.shape[0], Z_dim)
-            _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
             _, G_loss_curr = sess.run([G_solver, G_loss], feed_dict = {Z: Z_sample, y: y_mb})
 
             if it % 1000 == 0:
@@ -174,10 +180,12 @@ def main(_):
                 print('Iter: {}'.format(it))
                 print('D_loss: ' + str(D_loss_curr))
                 print('G_loss: ' + str(G_loss_curr))
+                g_loss_value.append(G_loss_curr)
                 saver.save(sess, FLAGS.model_path)
                 summary_str = sess.run(summary_op, feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
+        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value})
 
     else:
         test_samples_gen = test()
