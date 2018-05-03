@@ -6,6 +6,7 @@ import os
 import random
 import scipy.io as sio
 import math
+import fid
 
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -18,7 +19,7 @@ flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/cgan.model', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
 flags.DEFINE_integer('test_number', 0, 'The class that want to generate, if None, generate randomly.')
-flags.DEFINE_string('train_dir', 'D:\hsi_gan_result\KSC\hsi_data0.mat', 'Train data path.')
+flags.DEFINE_string('train_dir', '/media/luo/result/hsi_gan_result/KSC/hsi_data0.mat', 'Train data path.')
 FLAGS = flags.FLAGS
 
 # load data
@@ -146,7 +147,8 @@ mkdir('model/')
 def test():
 
     n_samples = 16
-
+    X_sample = spectral_data[: 16]
+    print(np.shape(X_sample))
     Z_sample = sample_Z(n_samples, Z_dim)
     y_sample = np.zeros(shape = [n_samples, y_dim])
     if FLAGS.test_number != None:
@@ -155,9 +157,13 @@ def test():
         for i in range(n_samples):
             y_sample[i][random.randint(0, y_dim - 1)] = 1
 
+    print(y_sample)
+
     samples = sess.run(G_sample, feed_dict = {Z: Z_sample, y: y_sample})
+    D_value = sess.run(D_real, feed_dict = {X: samples, y: y_sample})
+    D_real_value = sess.run(D_real, feed_dict = {X: X_sample, y: y_sample})
     print('Generate and saved samples.')
-    return samples
+    return samples, D_value, D_real_value
 
 def main(_):
     if FLAGS.is_train:
@@ -172,7 +178,7 @@ def main(_):
                 if it % 1000 == 0:
                     d_loss_value.append(D_loss_curr)
             Z_sample = sample_Z(y_mb.shape[0], Z_dim)
-            _, G_loss_curr = sess.run([G_solver, G_loss], feed_dict = {Z: Z_sample, y: y_mb})
+            _, G_loss_curr, g_sample = sess.run([G_solver, G_loss, G_sample], feed_dict = {Z: Z_sample, y: y_mb})
 
             if it % 1000 == 0:
             # train_samples_gen = test()
@@ -185,11 +191,19 @@ def main(_):
                 summary_str = sess.run(summary_op, feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
-        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value})
+                print(np.shape(X_mb))
+                hsi_mu, hsi_sigma = fid.calculate_statistics(X_mb)
+                print(np.shape(hsi_mu))
+                print(np.shape(Z_sample))
+                gen_mu, gen_sigma = fid.calculate_statistics(g_sample)
+                print(np.shape(gen_mu))
+                f = fid.calculate_frechet_distance(hsi_mu, hsi_sigma, gen_mu, gen_sigma)
+                print('FID: ', f)
+        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value, 'fid': f})
 
     else:
-        test_samples_gen = test()
-        sio.savemat('./test/data' + str(FLAGS.test_number) + '.mat', {'data': test_samples_gen})
+        test_samples_gen, d_value, d_real_value = test()
+        sio.savemat('./test/data' + str(FLAGS.test_number) + '.mat', {'data': test_samples_gen, 'd_value': d_value, 'd_real_value': d_real_value})
 
     sess.close()
 
