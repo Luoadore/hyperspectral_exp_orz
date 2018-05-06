@@ -7,6 +7,7 @@ import random
 import scipy.io as sio
 import math
 import fid
+from random import shuffle
 
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -103,6 +104,12 @@ def generator(z, y):
 def sample_Z(m, n):
     return np.random.uniform(-1., 1., size = [m, n])
 
+def acc(prob_r, prob_f):
+    r = tf.cast(prob_r > 0.5, tf.float32)
+    f = tf.cast(prob_f <= 0.5, tf.float32)
+    accuracy = tf.reduce_mean(tf.concat([r, f], 0))
+    return accuracy
+
 # Train set
 G_sample = generator(Z, y)
 D_real, D_logit_real = discriminator(X, y)
@@ -112,8 +119,10 @@ D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_
 D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.zeros_like(D_logit_fake)))
 D_loss = D_loss_real + D_loss_fake
 G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = D_logit_fake, labels = tf.ones_like(D_logit_fake)))
+D_acc = acc(D_real, D_fake)
 tf.summary.scalar('G_loss', G_loss)
 tf.summary.scalar('D_loss', D_loss)
+tf.summary.scalar('D_acc', D_acc)
 summary_op = tf.summary.merge_all()
 
 D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list = theta_D)
@@ -165,19 +174,46 @@ def test():
     print('Generate and saved samples.')
     return samples, D_value, D_real_value
 
+def caculate_fid(real_samples, Z_dim, y_mb, G_sample):
+    """
+    Args:
+        real_samples: Samples of per batch.
+        Z_dim: Dimension of noise.
+        y_mb: Onehot label of per batch.
+        G_sample: Tensorflow operation.
+    Return:
+        : [D_G fid, D_D fid]
+    """
+    n_fid = [[], []]
+    for i in range(20):
+        shuffle(real_samples)
+        l = len(real_samples) // 2
+        real_1 = real_samples[: l]
+        real_2 = real_samples[l :]
+        Z_sample = sample_Z(y_mb.shape[0], Z_dim)
+        g_sample = sess.run(G_sample, feed_dict={Z: Z_sample, y: y_mb})
+        fake = g_sample[: l]
+        mu_r1, sigma_r1 = fid.calculate_statistics(real_1)
+        mu_r2, sigma_r2 = fid.calculate_statistics(real_2)
+        mu_f, sigma_f = fid.calculate_statistics(fake)
+        n_fid[0].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_f, sigma_f))
+        n_fid[1].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_r2, sigma_r2))
+    return np.mean(n_fid, axis=1)
+
 def main(_):
     if FLAGS.is_train:
         g_loss_value = []
         d_loss_value = []
+        fid_value = []
         for it in range(FLAGS.iter):
-            for i in range(10):
+            for i in range(1):
                 X_mb, y_mb = next_batch(FLAGS.batch_size, it * 10 + i, spectral_data, spectral_labels)
 
                 Z_sample = sample_Z(y_mb.shape[0], Z_dim)
-                _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
+                _, D_loss_curr, D_acc_curr = sess.run([D_solver, D_loss, D_acc], feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
                 if it % 1000 == 0:
                     d_loss_value.append(D_loss_curr)
-            Z_sample = sample_Z(y_mb.shape[0], Z_dim)
+            # Z_sample = sample_Z(y_mb.shape[0], Z_dim)
             _, G_loss_curr, g_sample = sess.run([G_solver, G_loss, G_sample], feed_dict = {Z: Z_sample, y: y_mb})
 
             if it % 1000 == 0:
@@ -186,20 +222,17 @@ def main(_):
                 print('Iter: {}'.format(it))
                 print('D_loss: ' + str(D_loss_curr))
                 print('G_loss: ' + str(G_loss_curr))
+                print('D_acc', D_acc_curr)
                 g_loss_value.append(G_loss_curr)
                 saver.save(sess, FLAGS.model_path)
                 summary_str = sess.run(summary_op, feed_dict = {X: X_mb, Z: Z_sample, y: y_mb})
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
-                print(np.shape(X_mb))
-                hsi_mu, hsi_sigma = fid.calculate_statistics(X_mb)
-                print(np.shape(hsi_mu))
-                print(np.shape(Z_sample))
-                gen_mu, gen_sigma = fid.calculate_statistics(g_sample)
-                print(np.shape(gen_mu))
-                f = fid.calculate_frechet_distance(hsi_mu, hsi_sigma, gen_mu, gen_sigma)
+
+                f = caculate_fid(X_mb, Z_dim, y_mb, G_sample)
                 print('FID: ', f)
-        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value, 'fid': f})
+                fid_value.append(f)
+        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value, 'fid': fid_value})
 
     else:
         test_samples_gen, d_value, d_real_value = test()
