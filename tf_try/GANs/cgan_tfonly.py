@@ -16,7 +16,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # param config
 flags = tf.app.flags
 flags.DEFINE_integer('iter', 1000000, 'Iteration to train.')
-flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
+flags.DEFINE_integer('batch_size', 256, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/cgan.model', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
 flags.DEFINE_integer('test_number', 0, 'The class that want to generate, if None, generate randomly.')
@@ -174,7 +174,19 @@ def test():
     print('Generate and saved samples.')
     return samples, D_value, D_real_value
 
-def caculate_fid(real_samples, Z_dim, y_mb, G_sample):
+def real_fid(spectral_data):
+    n_fid = []
+    for i in range(20):
+        shuffle(spectral_data)
+        l = len(spectral_data) // 2
+        real_1, real_2 = spectral_data[: l], spectral_data[l :]
+        mu_1, sigma_1 = fid.calculate_statistics(real_1)
+        mu_2, sigma_2 = fid.calculate_statistics(real_2)
+        n_fid.append(fid.calculate_frechet_distance(mu_1, sigma_1, mu_2, sigma_2))
+    return np.mean(n_fid), mu_1, sigma_1
+fid_gt, mu_gt, sigma_gt = real_fid(spectral_data)
+
+def caculate_fid(mu_r1, sigma_r1, Z_dim, y_mb, G_sample):
     """
     Args:
         real_samples: Samples of per batch.
@@ -184,21 +196,13 @@ def caculate_fid(real_samples, Z_dim, y_mb, G_sample):
     Return:
         : [D_G fid, D_D fid]
     """
-    n_fid = [[], []]
+    n_fid = []
     for i in range(20):
-        shuffle(real_samples)
-        l = len(real_samples) // 2
-        real_1 = real_samples[: l]
-        real_2 = real_samples[l :]
         Z_sample = sample_Z(y_mb.shape[0], Z_dim)
         g_sample = sess.run(G_sample, feed_dict={Z: Z_sample, y: y_mb})
-        fake = g_sample[: l]
-        mu_r1, sigma_r1 = fid.calculate_statistics(real_1)
-        mu_r2, sigma_r2 = fid.calculate_statistics(real_2)
-        mu_f, sigma_f = fid.calculate_statistics(fake)
-        n_fid[0].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_f, sigma_f))
-        n_fid[1].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_r2, sigma_r2))
-    return np.mean(n_fid, axis=1)
+        mu_f, sigma_f = fid.calculate_statistics(g_sample)
+        n_fid.append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_f, sigma_f))
+    return np.mean(n_fid)
 
 def main(_):
     if FLAGS.is_train:
@@ -229,10 +233,11 @@ def main(_):
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
 
-                f = caculate_fid(X_mb, Z_dim, y_mb, G_sample)
+                f = caculate_fid(mu_gt, sigma_gt, Z_dim, y_mb, G_sample)
                 print('FID: ', f)
                 fid_value.append(f)
-        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value, 'fid': fid_value})
+        sio.savemat('./train/data' + str(FLAGS.test_number) + '_loss.mat', {'D_loss': d_loss_value, 'G_loss': g_loss_value,
+                                                                            'fid': fid_value, 'fid_gt': fid_gt})
 
     else:
         test_samples_gen, d_value, d_real_value = test()
