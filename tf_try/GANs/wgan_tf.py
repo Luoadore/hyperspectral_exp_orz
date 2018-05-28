@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # param config
 flags = tf.app.flags
-flags.DEFINE_integer('iter', 10000, 'Iteration to train.')
+flags.DEFINE_integer('iter', 2000, 'Iteration to train.')
 flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/wgan.model', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
@@ -25,8 +25,8 @@ spectral_data = data['data']
 spectral_labels = data['label']
 
 X_dim = spectral_data.shape[1]
-z_dim = 100
-h_dim = 128
+z_dim = 10
+h_dim = 64
 
 def next_batch(batch_size, num_step, data_set, label_set):
     """Return the next 'batch_size' examples from the data set.
@@ -97,11 +97,20 @@ D_real = discriminator(X)
 D_fake = discriminator(G_sample)
 
 def acc(D_fake):
-    # accuracy_real = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) > 0.5, tf.float32))
-    # accuracy_fake = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) < 0.5, tf.float32))
-    accuracy_real = tf.reduce_mean(tf.cast(D_fake > 0.5, tf.float32))
-    accuracy_fake = tf.reduce_mean(tf.cast(D_fake < 0.5, tf.float32))
+    accuracy_real = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) > 0.5, tf.float32))
+    accuracy_fake = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) <= 0.5, tf.float32))
+    # accuracy_real = tf.reduce_mean(tf.cast(D_fake > 0.5, tf.float32))
+    # accuracy_fake = tf.reduce_mean(tf.cast(D_fake < 0.5, tf.float32))
     return accuracy_real / 2, accuracy_fake / 2, D_fake
+
+def shuffling(data):
+    num = len(data)
+    index = np.arange(num)
+    shuffle(index)
+    s_data = []
+    for i in range(num):
+        s_data.append(data[index[i]])
+    return np.array(s_data)
 
 def cal_fid(real_samples, G_sample):
     """
@@ -112,13 +121,17 @@ def cal_fid(real_samples, G_sample):
         : [D_G fid, D_D fid]
     """
     n_fid = [[], []]
+    l = len(real_samples) // 2
+    print(type(real_samples))
     for i in range(5):
-        l = len(real_samples) // 2
         mu_f, sigma_f = fid.calculate_statistics(G_sample[: l])
-        shuffle(G_sample)
+        shuffling(G_sample)
         mu_r1, sigma_r1 = fid.calculate_statistics(real_samples[: l])
         mu_r2, sigma_r2 = fid.calculate_statistics(real_samples[l :])
-        shuffle(real_samples)
+        shuffling(real_samples)
+
+        print('The %d times samples:' % i)
+        print(real_samples)
         n_fid[0].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_f, sigma_f))
         n_fid[1].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_r2, sigma_r2))
     # print(n_fid[1])
@@ -140,10 +153,9 @@ clip_D = [p.assign(tf.clip_by_value(p, -0.01, 0.01)) for p in theta_D]
 # summary
 tf.summary.scalar('G_loss', G_loss)
 tf.summary.scalar('D_loss', -D_loss)
-tf.summary.scalar('D_fake_acc_1', D_acc)
-tf.summary.scalar('D_real_acc_1', D_real_acc)
-tf.summary.scalar('D_fake_acc_2', D_acc)
-tf.summary.scalar('D_real_acc_2', D_real_acc)
+tf.summary.scalar('D_fake_acc', D_acc)
+tf.summary.scalar('D_real_acc', D_real_acc)
+
 # tf.summary.scalar('fid', fid)
 summary_op = tf.summary.merge_all()
 saver = tf.train.Saver()
@@ -162,12 +174,12 @@ def main(_):
         fid = []
         d_a = []
         for it in range(FLAGS.iter):
-            data = sio.loadmat(FLAGS.train_dir)
-            spectral_data = data['data']
-            X_mb, _ = next_batch(FLAGS.batch_size, it, spectral_data, spectral_labels)
             # print('spec:', spectral_data)
             # print('x_mb', X_mb)
             for i in range(10):
+                data = sio.loadmat(FLAGS.train_dir)
+                spectral_data = data['data']
+                X_mb, _ = next_batch(FLAGS.batch_size, it + i, spectral_data, spectral_labels)
                 z_sample = sample_z(X_mb.shape[0], z_dim)
                 # print('Z_X_mb', X_mb)
                 # print('Z_SPEC', spectral_data)
@@ -190,7 +202,7 @@ def main(_):
             # print('g_acc_spec', spectral_data)
             # print('**********************************************************************')
 
-            if it % 100 == 0:
+            if it % 10 == 0:
                 print('Iter: {}; D loss: {:.4}; G_loss: {:.4}'
                       .format(it, -D_loss_curr, G_loss_curr))
                 # print('shuffle', X_mb)
@@ -208,9 +220,10 @@ def main(_):
                 summary_str = sess.run(summary_op, feed_dict={X: X_mb, z: z_sample})
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
-                # samples = sess.run(G_sample, feed_dict={z: sample_z(16, z_dim)})
 
-        sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat', {'fid': fid, 'd_acc': d_a})
+        samples = sess.run(G_sample, feed_dict={z: sample_z(100, z_dim)})
+        print(samples)
+        sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat', {'fid': fid, 'd_acc': d_a, 'g_sample': samples})
     else:
         pass
 
