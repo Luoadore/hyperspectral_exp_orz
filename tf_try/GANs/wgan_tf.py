@@ -13,10 +13,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 flags = tf.app.flags
 flags.DEFINE_integer('iter', 2000, 'Iteration to train.')
 flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
-flags.DEFINE_string('model_path', './model/wgan.model', 'Save model path.')
+flags.DEFINE_string('model_path', '/media/luo/result/hsi-wgan/test/exp_11', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
-flags.DEFINE_integer('class_number', 0, 'The class that want to generate, if None, generate randomly.')
-flags.DEFINE_string('train_dir', '/media/luo/result/hsi_gan_result/KSC/hsi_data0.mat', 'Train data path.')
+flags.DEFINE_integer('class_number', 11, 'The class that want to generate, if None, generate randomly.')
+flags.DEFINE_string('train_dir', '/media/luo/result/hsi_gan_result/KSC/hsi_data11.mat', 'Train data path.')
 FLAGS = flags.FLAGS
 
 # load data
@@ -120,18 +120,19 @@ def cal_fid(real_samples, G_sample):
     Return:
         : [D_G fid, D_D fid]
     """
+    if real_samples.shape[0] < 4:
+        return 0, 0
     n_fid = [[], []]
     l = len(real_samples) // 2
-    print(type(real_samples))
+    # print(type(real_samples))
     for i in range(5):
         mu_f, sigma_f = fid.calculate_statistics(G_sample[: l])
         shuffling(G_sample)
         mu_r1, sigma_r1 = fid.calculate_statistics(real_samples[: l])
         mu_r2, sigma_r2 = fid.calculate_statistics(real_samples[l :])
         shuffling(real_samples)
-
-        print('The %d times samples:' % i)
-        print(real_samples)
+        # print('The %d times samples:' % i)
+        # print(real_samples)
         n_fid[0].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_f, sigma_f))
         n_fid[1].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_r2, sigma_r2))
     # print(n_fid[1])
@@ -215,14 +216,14 @@ def main(_):
                 print('G_acc:', D_real_acc_curr_2, D_fake_acc_curr_2)
                 if D_fake_acc_curr_1 == 0:
                     print(last_value)
-                    print(X_mb)
+                    # print(X_mb)
                 saver.save(sess, FLAGS.model_path)
                 summary_str = sess.run(summary_op, feed_dict={X: X_mb, z: z_sample})
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
 
         samples = sess.run(G_sample, feed_dict={z: sample_z(100, z_dim)})
-        print(samples)
+        # print(samples)
         sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat', {'fid': fid, 'd_acc': d_a, 'g_sample': samples})
     else:
         pass
