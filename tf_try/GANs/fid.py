@@ -33,7 +33,6 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
     sigma1 = np.atleast_2d(sigma1)
     sigma2 = np.atleast_2d(sigma2)
-
     assert mu1.shape == mu2.shape
     assert sigma1.shape == sigma2.shape
 
@@ -53,7 +52,19 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
         covmean = covmean.real
 
     tr_covmean = np.trace(covmean)
-
+    assert diff.dot(diff) >= 0
+    assert np.trace(sigma1) >= 0, '应该大于0'
+    assert np.trace(sigma2) >= 0
+    assert tr_covmean >= 0
+    """print('begin')
+    print(diff.dot(diff))
+    print(np.trace(sigma1))
+    print(np.trace(sigma2))
+    print(tr_covmean)
+    print(np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean)
+    print('end')"""
+    if diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean < 0:
+        pass
     return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
 def calculate_statistics(data):
