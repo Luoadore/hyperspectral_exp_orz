@@ -11,9 +11,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # param config
 flags = tf.app.flags
-flags.DEFINE_integer('iter', 2000, 'Iteration to train.')
+flags.DEFINE_integer('iter', 10000, 'Iteration to train.')
 flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
-flags.DEFINE_string('model_path', '/media/luo/result/hsi-wgan/test/exp_11', 'Save model path.')
+flags.DEFINE_string('model_path', './model/exp_11', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
 flags.DEFINE_integer('class_number', 11, 'The class that want to generate, if None, generate randomly.')
 flags.DEFINE_string('train_dir', '/media/luo/result/hsi_gan_result/KSC/hsi_data11.mat', 'Train data path.')
@@ -47,6 +47,9 @@ def next_batch(batch_size, num_step, data_set, label_set):
 
     start_index = remainder * batch_size
     end_index = min(start_index + batch_size, data_size)
+    if end_index - start_index < 10:
+        shuffling(data_set)
+        start_index, end_index = 0, batch_size
     batch_data = data_set[start_index : end_index]
     batch_label = label_set[start_index : end_index]
     return batch_data, batch_label
@@ -85,7 +88,7 @@ def generator(z):
     G_h1 = tf.nn.relu(tf.matmul(z, G_W1) + G_b1)
     G_log_prob = tf.matmul(G_h1, G_W2) + G_b2
     G_prob = tf.nn.sigmoid(G_log_prob)
-    return G_prob
+    return G_log_prob #, G_prob
 
 def discriminator(x):
     D_h1 = tf.nn.relu(tf.matmul(x, D_W1) + D_b1)
@@ -144,9 +147,9 @@ D_acc_1, D_acc, l = acc(D_fake)
 D_real_acc, _, _ = acc(D_real)
 # fid = cal_fid(X, G_sample)
 
-D_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-4)
+D_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-5)
             .minimize(-D_loss, var_list=theta_D))
-G_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-4)
+G_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-5)
             .minimize(G_loss, var_list=theta_G))
 
 clip_D = [p.assign(tf.clip_by_value(p, -0.01, 0.01)) for p in theta_D]
@@ -162,13 +165,19 @@ summary_op = tf.summary.merge_all()
 saver = tf.train.Saver()
 
 sess = tf.Session()
-sess.run(tf.global_variables_initializer())
+if os.path.exists(os.path.join(FLAGS.model_path + '.index')):
+    saver.restore(sess, FLAGS.model_path)
+    print('restore model...')
+else:
+    sess.run(tf.global_variables_initializer())
 summary_writer = tf.summary.FileWriter(FLAGS.model_path, sess.graph)
 
+"""
 if FLAGS.is_train:
     sess.run(tf.global_variables_initializer())
 else:
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_path)
+"""
 
 def main(_):
     if FLAGS.is_train:
@@ -202,8 +211,9 @@ def main(_):
             # print('g_acc_x_mb', X_mb)
             # print('g_acc_spec', spectral_data)
             # print('**********************************************************************')
-
-            if it % 10 == 0:
+            if it == 0:
+                saver.save(sess, FLAGS.model_path, global_step=it)
+            if it % 100 == 0:
                 print('Iter: {}; D loss: {:.4}; G_loss: {:.4}'
                       .format(it, -D_loss_curr, G_loss_curr))
                 # print('shuffle', X_mb)
@@ -216,11 +226,17 @@ def main(_):
                 print('G_acc:', D_real_acc_curr_2, D_fake_acc_curr_2)
                 if D_fake_acc_curr_1 == 0:
                     print(last_value)
+                    saver.save(sess, FLAGS.model_path, global_step=it)
+                    print('Acc becomes 0, training has no meaning...')
+                    sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + 'break.mat',
+                                {'fid': fid, 'd_acc': d_a, 'z_sample': z_sample, 'real': X_mb})
+                    break
+
                     # print(X_mb)
-                saver.save(sess, FLAGS.model_path)
-                summary_str = sess.run(summary_op, feed_dict={X: X_mb, z: z_sample})
-                summary_writer.add_summary(summary_str, it)
-                summary_writer.flush()
+            saver.save(sess, FLAGS.model_path)
+            summary_str = sess.run(summary_op, feed_dict={X: X_mb, z: z_sample})
+            summary_writer.add_summary(summary_str, it)
+            summary_writer.flush()
 
         samples = sess.run(G_sample, feed_dict={z: sample_z(100, z_dim)})
         # print(samples)
