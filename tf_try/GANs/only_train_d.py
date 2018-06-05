@@ -5,13 +5,16 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-data = sio.loadmat('./train/data0.mat')
-spectral_data = data['X']
-z_sample = data['z']
+data = sio.loadmat('/media/luo/cs/codestore/hyperspectral_exp_orz/tf_try/GANs/model/exp_11/data11break.mat')
+spectral_data = data['real']
+z_sample = data['z_sample']
 
 X_dim = spectral_data.shape[1]
-z_dim = 100
-h_dim = 128
+z_dim = 10
+h_dim = 64
+
+def shuffling(data):
+    return data
 
 def next_batch(batch_size, num_step, data_set):
     data_size = len(data_set)
@@ -19,6 +22,9 @@ def next_batch(batch_size, num_step, data_set):
     remainder = num_step % num_per_epoch
     start_index = remainder * batch_size
     end_index = min(start_index + batch_size, data_size)
+    if end_index - start_index < 10:
+        shuffling(data_set)
+        start_index, end_index = 0, batch_size
     batch_data = data_set[start_index : end_index]
 
     return batch_data
@@ -51,7 +57,7 @@ def generator(z):
     G_h1 = tf.nn.relu(tf.matmul(z, G_W1) + G_b1)
     G_log_prob = tf.matmul(G_h1, G_W2) + G_b2
     G_prob = tf.nn.sigmoid(G_log_prob)
-    return G_prob
+    return G_log_prob
 
 def discriminator(x):
     D_h1 = tf.nn.relu(tf.matmul(x, D_W1) + D_b1)
@@ -63,32 +69,36 @@ D_real = discriminator(X)
 D_fake = discriminator(G_sample)
 
 def acc(D_fake):
-    accuracy_real = tf.reduce_mean(tf.cast(D_fake > 0.5, tf.float32))
-    accuracy_fake = tf.reduce_mean(tf.cast(D_fake < 0.5, tf.float32))
-    return accuracy_real / 2, accuracy_fake / 2
+    accuracy_real = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) > 0.5, tf.float32))
+    accuracy_fake = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) <= 0.5, tf.float32))
+    return accuracy_real / 2, accuracy_fake / 2, tf.nn.sigmoid(D_fake)
 
 D_loss = tf.reduce_mean(D_real) - tf.reduce_mean(D_fake)
-D_acc_1, D_acc = acc(D_fake)
-D_real_acc, _ = acc(D_real)
-D_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-4)
+D_acc_1, D_acc, l = acc(D_fake)
+D_real_acc, _, _ = acc(D_real)
+# D_solver = (tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(-D_loss, var_list = theta_D))
+D_solver = (tf.train.RMSPropOptimizer(learning_rate=0.0001)
             .minimize(-D_loss, var_list=theta_D))
 clip_D = [p.assign(tf.clip_by_value(p, -0.01, 0.01)) for p in theta_D]
 
 sess = tf.Session()
 saver = tf.train.Saver()
-ckpt = tf.train.get_checkpoint_state('./model')
-model_file = tf.train.latest_checkpoint('./model')
-saver.restore(sess, model_file)
+saver.restore(sess, '/media/luo/cs/codestore/hyperspectral_exp_orz/tf_try/GANs/model/exp_11-0')
+print('where is restore model???')
 
 d_a = []
-for it in range(1000):
-    X_mb = next_batch(25, it, spectral_data)
+d_loss = []
+for it in range(2000):
+    X_mb = next_batch(50, it, spectral_data)
     _, D_loss_curr, _ = sess.run([D_solver, D_loss, clip_D],feed_dict={X: X_mb, z: z_sample})
-    D_real_acc_curr_1, D_fake_acc_curr_1 = sess.run([D_real_acc, D_acc], feed_dict={X: X_mb, z: z_sample})
-    print('Iter: {}; D loss: {:.4}'.format(it, - D_loss_curr))
-    print('D_acc:', D_real_acc_curr_1, D_fake_acc_curr_1)
-    d_a.append([D_real_acc_curr_1, D_fake_acc_curr_1])
+    D_real_acc_curr_1, D_fake_acc_curr_1, last_value = sess.run([D_real_acc, D_acc, l], feed_dict={X: X_mb, z: z_sample})
+    if it % 10 == 0:
+        print('Iter: {}; D loss: {:.4}'.format(it, - D_loss_curr))
+        print('D_acc:', D_real_acc_curr_1, D_fake_acc_curr_1)
+        d_a.append([D_real_acc_curr_1, D_fake_acc_curr_1])
+        d_loss.append(D_loss_curr)
+print(last_value)
 
-sio.savemat('./train/data_d.mat', {'d_a': d_a})
+sio.savemat('./model/data_d.mat', {'d_a': d_a, 'd_l': d_loss})
 
 sess.close()
