@@ -7,12 +7,13 @@ import math
 import fid
 from random import shuffle
 import copy
+import data_scaling as ds
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # param config
 flags = tf.app.flags
-flags.DEFINE_integer('iter', 10000, 'Iteration to train.')
-flags.DEFINE_integer('batch_size', 100, 'The size of each batch.')
+flags.DEFINE_integer('iter', 100000, 'Iteration to train.')
+flags.DEFINE_integer('batch_size', 516, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/exp_11', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
 flags.DEFINE_integer('class_number', 11, 'The class that want to generate, if None, generate randomly.')
@@ -23,6 +24,8 @@ FLAGS = flags.FLAGS
 data = sio.loadmat(FLAGS.train_dir)
 spectral_data = data['data']
 spectral_labels = data['label']
+spectral_data = ds.delete(spectral_data)
+spectral_data = ds.scaling(spectral_data)
 
 X_dim = spectral_data.shape[1]
 z_dim = 10
@@ -87,12 +90,14 @@ def sample_z(m, n):
 def generator(z):
     G_h1 = tf.nn.relu(tf.matmul(z, G_W1) + G_b1)
     G_log_prob = tf.matmul(G_h1, G_W2) + G_b2
-    G_prob = tf.nn.sigmoid(G_log_prob)
-    return G_log_prob #, G_prob
+    # G_prob = tf.nn.sigmoid(G_log_prob)
+    G_prob = tf.nn.relu(G_log_prob)
+    return G_prob
 
 def discriminator(x):
     D_h1 = tf.nn.relu(tf.matmul(x, D_W1) + D_b1)
     out = tf.matmul(D_h1, D_W2) + D_b2
+    out = tf.nn.sigmoid(out)
     return out
 
 G_sample = generator(z)
@@ -100,10 +105,10 @@ D_real = discriminator(X)
 D_fake = discriminator(G_sample)
 
 def acc(D_fake):
-    accuracy_real = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) > 0.5, tf.float32))
-    accuracy_fake = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) <= 0.5, tf.float32))
-    # accuracy_real = tf.reduce_mean(tf.cast(D_fake > 0.5, tf.float32))
-    # accuracy_fake = tf.reduce_mean(tf.cast(D_fake < 0.5, tf.float32))
+    # accuracy_real = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) > 0.5, tf.float32))
+    # accuracy_fake = tf.reduce_mean(tf.cast(tf.nn.sigmoid(D_fake) <= 0.5, tf.float32))
+    accuracy_real = tf.reduce_mean(tf.cast(D_fake > 0.5, tf.float32))
+    accuracy_fake = tf.reduce_mean(tf.cast(D_fake < 0.5, tf.float32))
     return accuracy_real / 2, accuracy_fake / 2, D_fake
 
 def shuffling(data):
@@ -140,7 +145,8 @@ def cal_fid(real_samples, G_sample):
         n_fid[1].append(fid.calculate_frechet_distance(mu_r1, sigma_r1, mu_r2, sigma_r2))
     # print(n_fid[1])
     return np.mean(n_fid, axis=1)
-
+D_loss_fake = tf.reduce_mean(D_fake)
+D_loss_real = tf.reduce_mean(D_real)
 D_loss = tf.reduce_mean(D_real) - tf.reduce_mean(D_fake)
 G_loss = -tf.reduce_mean(D_fake)
 D_acc_1, D_acc, l = acc(D_fake)
@@ -157,8 +163,8 @@ clip_D = [p.assign(tf.clip_by_value(p, -0.01, 0.01)) for p in theta_D]
 # summary
 tf.summary.scalar('G_loss', G_loss)
 tf.summary.scalar('D_loss', -D_loss)
-tf.summary.scalar('D_fake_acc', D_acc)
-tf.summary.scalar('D_real_acc', D_real_acc)
+# tf.summary.scalar('D_fake_acc', D_acc)
+# tf.summary.scalar('D_real_acc', D_real_acc)
 
 # tf.summary.scalar('fid', fid)
 summary_op = tf.summary.merge_all()
@@ -183,6 +189,7 @@ def main(_):
     if FLAGS.is_train:
         fid = []
         d_a = []
+        loss = []
         for it in range(FLAGS.iter):
             # print('spec:', spectral_data)
             # print('x_mb', X_mb)
@@ -193,8 +200,8 @@ def main(_):
                 z_sample = sample_z(X_mb.shape[0], z_dim)
                 # print('Z_X_mb', X_mb)
                 # print('Z_SPEC', spectral_data)
-                _, D_loss_curr, _ = sess.run(
-                    [D_solver, D_loss, clip_D],
+                _, D_loss_curr, _, D_l_f, D_l_r = sess.run(
+                    [D_solver, D_loss, clip_D, D_loss_fake, D_loss_real],
                     feed_dict={X: X_mb, z: z_sample}
                 )
                 # print('D_x_mb', X_mb)
@@ -221,10 +228,11 @@ def main(_):
                 fid.append(cal_fid(X_for_fid, g_sample))
                 # print('shuffle down', X_mb)
                 d_a.append([D_real_acc_curr_1, D_fake_acc_curr_1, D_real_acc_curr_2, D_fake_acc_curr_2])
+                loss.append([-D_loss_curr, G_loss_curr, D_l_f, D_l_r])
                 print('FID:', cal_fid(X_for_fid, g_sample))
                 print('D_acc:', D_real_acc_curr_1, D_fake_acc_curr_1)
                 print('G_acc:', D_real_acc_curr_2, D_fake_acc_curr_2)
-                if D_fake_acc_curr_1 == 0:
+                if it > 0 and D_fake_acc_curr_1 == 0:
                     print(last_value)
                     saver.save(sess, FLAGS.model_path, global_step=it)
                     print('Acc becomes 0, training has no meaning...')
@@ -240,7 +248,8 @@ def main(_):
 
         samples = sess.run(G_sample, feed_dict={z: sample_z(100, z_dim)})
         # print(samples)
-        sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat', {'fid': fid, 'd_acc': d_a, 'g_sample': samples})
+        sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat', {'fid': fid, 'd_acc': d_a, 'loss': loss,
+                                                                                    'g_sample': samples})
     else:
         pass
 
