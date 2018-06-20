@@ -154,7 +154,7 @@ D_acc_1, D_acc, l = acc(D_fake)
 D_real_acc, _, _ = acc(D_real)
 # fid = cal_fid(X, G_sample)
 
-D_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-5)
+D_solver = (tf.train.RMSPropOptimizer(learning_rate=0.1)
             .minimize(-D_loss, var_list=theta_D))
 G_solver = (tf.train.RMSPropOptimizer(learning_rate=1e-5)
             .minimize(G_loss, var_list=theta_G))
@@ -195,8 +195,6 @@ def main(_):
             # print('spec:', spectral_data)
             # print('x_mb', X_mb)
             for i in range(10):
-                data = sio.loadmat(FLAGS.train_dir)
-                spectral_data = data['data']
                 X_mb, _ = next_batch(FLAGS.batch_size, it + i, spectral_data, spectral_labels)
                 z_sample = sample_z(X_mb.shape[0], z_dim)
                 # print('Z_X_mb', X_mb)
