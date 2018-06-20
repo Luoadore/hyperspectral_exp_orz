@@ -13,6 +13,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # param config
 flags = tf.app.flags
 flags.DEFINE_integer('iter', 10000, 'Iteration to train.')
+flags.DEFINE_integer('iter_times',0, 'Iteration times of training.')
 flags.DEFINE_integer('batch_size', 516, 'The size of each batch.')
 flags.DEFINE_string('model_path', './model/exp_11', 'Save model path.')
 flags.DEFINE_boolean('is_train', True, 'Train or test.')
@@ -26,6 +27,7 @@ spectral_data = data['data']
 spectral_labels = data['label']
 spectral_data = ds.delete(spectral_data)
 spectral_data = ds.scaling(spectral_data)
+print(spectral_data)
 
 X_dim = spectral_data.shape[1]
 z_dim = 100
@@ -98,8 +100,8 @@ def generator(z):
     G_h1 = tf.nn.relu(tf.matmul(z, G_W1) + G_b1)
     G_h2 = tf.nn.relu(tf.matmul(G_h1, G_W2) + G_b2)
     G_log_prob = tf.matmul(G_h2, G_W3) + G_b3
-    # G_prob = tf.nn.sigmoid(G_log_prob)
-    G_prob = tf.nn.relu(G_log_prob)
+    G_prob = tf.nn.sigmoid(G_log_prob)
+    # G_prob = tf.nn.relu(G_log_prob)
     return G_prob
 
 def discriminator(x):
@@ -109,7 +111,7 @@ def discriminator(x):
     D_h2 = tf.nn.relu(tf.matmul(D_h1, D_W2) + D_b2)
     [dw2, db2] = tf.gradients(D_h2, [D_W2, D_b2])
     out = tf.matmul(D_h2, D_W3) + D_b3
-    out = tf.nn.sigmoid(out)
+    # out = tf.nn.sigmoid(out)
     [dw3, db3] = tf.gradients(out, [D_W3, D_b3])
     grad = [[dw1, db1], [dw2, db2], [dw3, db3]]
     return out, grad
@@ -209,8 +211,6 @@ def main(_):
             # print('spec:', spectral_data)
             # print('x_mb', X_mb)
             for i in range(10):
-                data = sio.loadmat(FLAGS.train_dir)
-                spectral_data = data['data']
                 X_mb, _ = next_batch(FLAGS.batch_size, it + i, spectral_data, spectral_labels)
                 z_sample = sample_z(X_mb.shape[0], z_dim)
                 # print('Z_X_mb', X_mb)
@@ -235,10 +235,10 @@ def main(_):
             # print('g_acc_spec', spectral_data)
             # print('**********************************************************************')
             if it == 0:
-                saver.save(sess, FLAGS.model_path, global_step=it)
+                saver.save(sess, FLAGS.model_path, global_step=it + FLAGS.iter_times * FLAGS.iter)
             if it % 100 == 0:
                 print('Iter: {}; D loss: {:.4}; G_loss: {:.4}'
-                      .format(it, -D_loss_curr, G_loss_curr))
+                      .format(it + FLAGS.iter_times * FLAGS.iter, -D_loss_curr, G_loss_curr))
                 # print('shuffle', X_mb)
                 X_for_fid = copy.copy(X_mb)
                 fid.append(cal_fid(X_for_fid, g_sample))
@@ -250,14 +250,14 @@ def main(_):
                 print('G_acc:', D_real_acc_curr_2, D_fake_acc_curr_2)
                 if it > 0 and D_fake_acc_curr_1 == 0:
                     print(last_value)
-                    saver.save(sess, FLAGS.model_path, global_step=it)
+                    saver.save(sess, FLAGS.model_path, global_step=it + FLAGS.iter_times * FLAGS.iter)
                     print('Acc becomes 0, training has no meaning...')
                     sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + 'break.mat',
                                 {'fid': fid, 'd_acc': d_a, 'z_sample': z_sample, 'real': X_mb})
                     break
 
                     # print(X_mb)
-            saver.save(sess, FLAGS.model_path)
+            saver.save(sess, FLAGS.model_path, global_step=it + FLAGS.iter_times * FLAGS.iter)
             summary_str = sess.run(summary_op, feed_dict={X: X_mb, z: z_sample})
             summary_writer.add_summary(summary_str, it)
             summary_writer.flush()
@@ -267,8 +267,9 @@ def main(_):
                 # print(samples)
                 sio.savemat(FLAGS.model_path + '/data' + str(it) + '.mat', {'g_sample': samples, 'grad_real': grad_real_curr, 'grad_fake': grad_fake_curr})
 
+        samples = sess.run(G_sample, feed_dict={z: sample_z(100, z_dim)})
         sio.savemat(FLAGS.model_path + '/data' + str(FLAGS.class_number) + '.mat',
-                    {'fid': fid, 'd_acc': d_a, 'loss': loss})
+                    {'fid': fid, 'd_acc': d_a, 'loss': loss, 'g_sample': samples})
     else:
         pass
 
