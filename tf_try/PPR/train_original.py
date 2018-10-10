@@ -15,15 +15,14 @@ from data_config import *
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 20000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 1, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
-flags.DEFINE_string('label_dir', '/media/luo/result/hsi/KSC/KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', '/media/luo/result/test/KSC/model', 'The train result save file.')
 flags.DEFINE_string('dataset_name', 'ksc', 'Name of dataset.')
+flags.DEFINE_string('save_name', 'ksc', 'Save name of dataset.')
 
 
 def placeholder_inputs(batch_size, bands, num_class):
@@ -182,12 +181,23 @@ def run_training():
     # Second method to get data
     if FLAGS.dataset_name == 'ksc':
         data_set = ksc
+    elif FLAGS.dataset_name == 'pu':
+        data_set = pu
+    elif FLAGS.dataset_name == 'ip':
+        data_set = ip
+    else:
+        data_set = sa
     bands = data_set['bands']
     num_class = data_set['num_classes']
     data = sio.loadmat(data_set['data_dir'])
-    train_data = data['train_data'][:, bands * 5: bands * 6]
+    if FLAGS.neighbor == 1:
+        train_data = data['train_data'][:, bands * 5: bands * 6]
+        test_data = data['test_data'][:, bands * 5: bands * 6]
+    else:
+        train_data = data['train_data']
+        test_data = data['test_data']
     train_label = np.transpose(data['train_label'])
-    test_data = data['test_data'][:, bands * 5: bands * 6]
+
     test_label = np.transpose(data['test_label'])
     train_label = dp.onehot_label(train_label, num_class)
     test_label = dp.onehot_label(test_label, num_class)
@@ -227,7 +237,8 @@ def run_training():
         # Create a session for training
         sess = tf.Session()
         # Instantiate a SummaryWriter to output summaries and the Graph
-        summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
+        train_dir = data_set['train_dir'] + FLAGS.save_name
+        summary_writer = tf.summary.FileWriter(train_dir, sess.graph)
 
         # Run the Op to initialize the variables
         sess.run(init)
@@ -275,7 +286,7 @@ def run_training():
 
             # Save a checkpoint and evaluate the model periodically
             if (step + 1) % 100 == 0 or (step + 1) == FLAGS.max_steps:
-                checkpoint_file = os.path.join(FLAGS.train_dir, 'checkpoint')
+                checkpoint_file = os.path.join(train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step=step)
                 # data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
                 # data_test_placeholder, label_test_placeholder = placeholder_inputs(len(test_label))
@@ -306,7 +317,8 @@ def run_training():
     print('test label: ' + str(dp.decode_onehot_label(test_label, oc.NUM_CLASSES)))
     print('总用时： ' + str(time_sum))"""
 
-    sio.savemat(FLAGS.train_dir + '\data.mat', {
+
+    sio.savemat(train_dir + '/data.mat', {
     # 'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, FLAGS.num_class), 'train_pos': train_pos,
         # 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, FLAGS.num_class), 'test_pos': test_pos,
         'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,

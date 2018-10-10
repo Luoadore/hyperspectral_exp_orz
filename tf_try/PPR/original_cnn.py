@@ -31,7 +31,7 @@ def ppr_block(inp, kernels, stride, bands_size):
             conv = tf.sigmoid(conv_biases + tf.nn.conv2d(x_data, conv_weights,
                                                            strides=[1, stride, stride, 1],
                                                            padding='VALID'))
-        conv = tf.image.resize_images(conv, [1, bands_size])
+        conv = tf.image.resize_images(conv, [1, bands_size * stride], method=1)
         out = tf.concat([out, conv], 3)
     assert out.get_shape()[3] == channels + 1
     return out
