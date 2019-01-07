@@ -22,9 +22,9 @@ flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
-flags.DEFINE_string('data_dir', '/media/luo/result/hsi_transfer/ksc/data_3.mat', 'Directory of data file.')
+flags.DEFINE_string('data_dir', '/media/luo/result/hsi_transfer/ksc/data_4.mat', 'Directory of data file.')
 flags.DEFINE_string('label_dir', '/media/luo/result/hsi/KSC/KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/', 'The train result save file.')
+flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/0106/', 'The train result save file.')
 
 
 def placeholder_inputs(batch_size):
@@ -198,10 +198,12 @@ def run_training():
 
     train_acc_steps = []
     test_loss_steps = []
-    test_acc_steps = []
+    s_test_acc_steps = []
+    t_test_acc_steps = []
     test_steps = []
     train_prediction = []
-    test_prediction = []
+    s_test_prediction = []
+    t_test_prediction = []
 
     with tf.Graph().as_default():
         # Generate placeholders
@@ -242,23 +244,6 @@ def run_training():
             # Run one step of the model
             _, loss_value = sess.run([train_op, loss_entroy], feed_dict=feed_dict)
 
-            # print(np.shape(conv1_weights_value))
-            # print('input ************************************')
-            # print(train_data[0])
-            # print('conv1 weights ****************************')
-            # print(conv1_weights_value[0][0])
-            # print('conv1 output *****************************')
-            # print(conv1_output[0])
-            # print('mpool output *****************************')
-            # print(mpool_output[0 ])
-            # print('fc weights *******************************')
-            # print(fc_weights_value[0])
-            # print('fc output ********************************')
-            # print(fc_output[0])
-            # print('softmax weights **************************')
-            # print(softmax_weights_value[0])
-            # print('softmax ****************************')
-            # print(softmax_value[0])
 
             duration = time.time() - start_time
 
@@ -286,14 +271,15 @@ def run_training():
                                                       train_label, softmax)
                 train_acc_steps.append(train_acc)
                 print('Source test Data Eval:')
-                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, source_test_data,
+                s_test_acc, s_test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, source_test_data,
                                                     source_test_label, softmax)
                 print('Target Test Data Eval:')
-                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, target_test_data,
+                t_test_acc, t_test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, target_test_data,
                                                     target_test_label, softmax)
                 # test_loss = sess.run(loss_entroy, feed_dict=feed_dict_test)
                 test_steps.append(step)
-                test_acc_steps.append(test_acc)
+                s_test_acc_steps.append(s_test_acc)
+                t_test_acc_steps.append(t_test_acc)
                 # test_loss_steps.append(test_loss)
 
                 # train_fea_values = get_feature(sess, data_placeholder, label_placeholder, train_data, train_label, fc)
@@ -308,13 +294,15 @@ def run_training():
     print('test label: ' + str(dp.decode_onehot_label(test_label, oc.NUM_CLASSES)))
     print('总用时： ' + str(time_sum))"""
 
-    sio.savemat(FLAGS.train_dir + '\data_1225.mat', {
+    sio.savemat(FLAGS.train_dir + '\data.mat', {
     # 'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
         # 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
         # 'test_loss': test_loss_steps,
-        'test_acc': test_acc_steps, 'test_step': test_steps,
+        'source_test_acc': s_test_acc_steps, 'test_step': test_steps,
+        'target_test_acc': t_test_acc_steps,
         'train_acc': train_acc_steps,  # 'train_fea': train_fea_values, 'test_fea': test_fea_values,
-        'train_prediction': train_prediction, 'test_prediction': test_prediction})
+        'train_prediction': train_prediction,
+        'source_test_prediction': s_test_prediction, 'target_test_prediction': t_test_prediction})
 
 
 def main(_):
