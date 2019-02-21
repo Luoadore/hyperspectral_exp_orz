@@ -16,7 +16,7 @@ from data_config import *
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 1e-6, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 30000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 20000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
@@ -273,15 +273,15 @@ def run_training():
 
         time_sum = 0
         loss_value = 0
-        max_lr = 0.01
+        max_lr = 0.1
 
         # Start the training loop
         for step in range(FLAGS.max_steps):
 
             if step != 0 and step % (43 * 5) == 0:
                 lr_range_test.append(str(lr) + '\t' + str(loss_value))
-                # lr = adjust_learning_rate(step, 100, FLAGS.learning_rate, max_lr, FLAGS.mode)
-                lr = adjust_learning_rate(step, 100, lr, max_lr, FLAGS.mode)
+                lr = adjust_learning_rate(step, 100, FLAGS.learning_rate, max_lr, FLAGS.mode)
+                # lr = adjust_learning_rate(step, 100, lr, max_lr, FLAGS.mode)
                 train_op = model.training(loss_entroy, lr)
 
 

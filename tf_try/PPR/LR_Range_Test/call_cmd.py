@@ -55,11 +55,15 @@ for n in range(1, 2):
                              shell= True)
         p.wait()"""
 
+lr_mode = ['trangular', 'trangular2', 'exp']
+
 for i in range(1):
-    p = subprocess.Popen('python train.py '
-                         + '--PPR_block cd '
-                         + '--dataset_name ' + dataset[i]
-                         + ' --neighbor 8 --conv1_stride 9'
-                         + ' --save_name ' + dataset[i] + '_1229_lrtest' + '/',
-                         shell=True)
-    p.wait()
+    for j in range(3):
+        p = subprocess.Popen('python train.py '
+                             + '--PPR_block cd '
+                             + '--dataset_name ' + dataset[i]
+                             + ' --neighbor 8 --conv1_stride 9'
+                             + ' --mode ' + lr_mode[j]
+                             + ' --save_name ' + dataset[i] + '_0104_' + lr_mode[j] + '/',
+                             shell=True)
+        p.wait()

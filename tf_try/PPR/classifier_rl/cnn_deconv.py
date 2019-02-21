@@ -17,6 +17,9 @@ import math
 
 def ppr_block(inp, kernels, stride, bands_size):
     channels = len(kernels)
+    out = tf.expand_dims(inp, 1)
+    out = tf.expand_dims(out, -1)
+    out = tf.slice(out, [0, 0, bands_size * 5, 1], [-1, 1, bands_size, 1])
     for i in range(channels):
         with tf.name_scope('conv_' + str(i)):
             conv_weights = tf.Variable(
@@ -42,13 +45,15 @@ def ppr_block(inp, kernels, stride, bands_size):
                                                              strides=[1, stride, stride, 1], padding='VALID')
 
             print('deconv_shape', deconv.get_shape())
+        """
         if i == 0:
             out = deconv
         else:
             out = tf.concat([out, deconv], 3)
-
+"""
+        out = tf.concat([out, deconv], 3)
     print('concat_out_shape', out.get_shape())
-    assert out.get_shape()[3] == channels
+    assert out.get_shape()[3] == channels + 1
     return out
 
 
