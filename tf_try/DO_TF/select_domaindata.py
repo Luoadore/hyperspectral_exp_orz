@@ -25,7 +25,6 @@ def select_data(center_pos, rectangle_size, data_file, labels_file, neighbor):
     pos
     """
 
-    global data_position
     data = sio.loadmat(data_file)
     label = sio.loadmat(labels_file)
     data_o = data['DataSet']
@@ -116,6 +115,7 @@ def select_data(center_pos, rectangle_size, data_file, labels_file, neighbor):
                 data_list[label - 1].append(data_temp)
                 data_pos[label - 1].append(data_position)
 
+    print(data_list)
     # print('data position: ' + str(data_pos[0]))
     # print('data position: ', data_pos)
     print('Extract data done.')
@@ -193,6 +193,9 @@ def shuffling1(data_set, data_pos):
                 shuffled_pos.append(eachpos[index[i]])
             dataset.append(shuffled_data)
             datapos.append(shuffled_pos)
+        else:
+            dataset.append([])
+            datapos.append([])
 
     print('Shuffling1 done.')
 
@@ -243,8 +246,9 @@ def load_data(dataset, datapos, ratio):
         test_pos: Numpy darray, test data position
     """
     data_num = 0
-    for eachclass in dataset:
+    for index, eachclass in enumerate(dataset):
         data_num += len(eachclass)
+        print('the ' + str(index) + '-th class has ' + str(len(eachclass)) + ' samples.')
     print('There are ' + str(data_num) + ' examples in data set.')
     train_data = []
     train_label = []
@@ -276,11 +280,11 @@ def load_data(dataset, datapos, ratio):
     print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
     print('load test: ' + str(len(test_data)) + ', ' + str(len(test_label)))
     #shuffle all the data set
-    train_data, train_label, train_pos = shuffling2(train_data, train_label, train_pos)
-    test_data, test_label, test_pos = shuffling2(test_data, test_label, test_pos)
-    scaler = sp.StandardScaler().fit(train_data)
-    train_data = scaler.transform(train_data)
-    test_data = scaler.transform(test_data)
+    #train_data, train_label, train_pos = shuffling2(train_data, train_label, train_pos)
+    #test_data, test_label, test_pos = shuffling2(test_data, test_label, test_pos)
+    # scaler = sp.StandardScaler().fit(train_data)
+    # train_data = scaler.transform(train_data)
+    # test_data = scaler.transform(test_data)
     #print('train data normalize:')
     #print(train_data[0])
     print('Load data.')

@@ -7,7 +7,8 @@ import numpy as np
 from random import shuffle, randint
 import math
 from sklearn import preprocessing as sp
-from config import ksc
+from config import *
+from select_domaindata import load_data
 
 def mean_std(data_file, labels_file, neighbor):
     """
@@ -35,7 +36,14 @@ def mean_std(data_file, labels_file, neighbor):
     bands = np.size(data_o, 2)
     print('The data has ' + str(bands) + ' bands.')
 
+    data_set = []
     data_list = []
+    for mark in range(classes):
+        data_list.append([])
+
+    data_pos = []
+    for mark in range(classes):
+        data_pos.append([])
 
     for i in range(rows):
         for j in range(cols):
@@ -81,12 +89,14 @@ def mean_std(data_file, labels_file, neighbor):
                         # print('8 neighbors extract done.')
 
                 data_temp[data_temp >= 65534] = 0
-                data_list.append(data_temp)
+                data_set.append(data_temp)
+                data_list[label - 1].append(data_temp)
+                data_pos[label - 1].append(data_position)
 
 
-    scaler = sp.StandardScaler().fit(data_list)
+    scaler = sp.StandardScaler().fit(data_set)
     print('Extract data done.')
-    return scaler
+    return scaler, data_list, data_pos
 
 def normalize_dataset(scaler, train_data, test_data):
     train_data = scaler.transform(train_data)
@@ -96,25 +106,40 @@ def normalize_dataset(scaler, train_data, test_data):
 if __name__ == '__main__':
 
     # prepare
-    dataset = ksc
+    data = [ip, pu, sa]
+    # dataset = ksc
     neighbor = 8
 
-    scaler = mean_std(dataset['data_dir'], dataset['label_dir'], neighbor)
+    for dataset in data:
+        print('dataset: ' + str(dataset))
+        scaler, data_list, data_pos = mean_std(dataset['data_dir'], dataset['label_dir'], neighbor)
 
-    data_set = sio.loadmat(dataset['train_dir'] + '/data.mat')
-    # Get the sets of data
-    print('Source')
-    s_train_data, s_test_data = data_set['source_train_data'], data_set['source_test_data']
-    s_train_data, s_test_data = normalize_dataset(scaler, s_train_data, s_test_data)
 
-    # Get the sets of data
-    print('Target')
-    t_train_data, t_test_data = data_set['target_train_data'], data_set['target_test_data']
-    t_train_data, t_test_data = normalize_dataset(scaler, t_train_data, t_test_data)
+        # source and target normalize
+        """
+        data_set = sio.loadmat(dataset['train_dir'] + '/data.mat')
+        # Get the sets of data
+        print('Source')
+        s_train_data, s_test_data = data_set['source_train_data'], data_set['source_test_data']
+        s_train_data, s_test_data = normalize_dataset(scaler, s_train_data, s_test_data)
 
-    sio.savemat(dataset['train_dir'] + '/data_normalize.mat', {
-        'source_train_data': s_train_data,
-        'source_test_data': s_test_data,
-        'target_train_data': t_train_data,
-        'target_test_data': t_test_data,
-        })
+        # Get the sets of data
+        print('Target')
+        t_train_data, t_test_data = data_set['target_train_data'], data_set['target_test_data']
+        t_train_data, t_test_data = normalize_dataset(scaler, t_train_data, t_test_data)
+
+        sio.savemat(dataset['train_dir'] + '/data_normalize.mat', {
+            'source_train_data': s_train_data,
+            'source_test_data': s_test_data,
+            'target_train_data': t_train_data,
+            'target_test_data': t_test_data,
+            })
+        """
+
+        # the whole dataset normalize
+        train_data, train_label, train_pos, test_data, test_label, test_pos = load_data(data_list, data_pos, 80)
+        train_data, test_data = normalize_dataset(scaler, train_data, test_data)
+        sio.savemat(dataset['train_dir'] + '/data_set.mat', {
+            'train_data': train_data, 'train_label': train_label, 'train_pos': train_pos,
+            'test_data': test_data, 'test_label': test_label, 'test_pos': test_pos,
+            })

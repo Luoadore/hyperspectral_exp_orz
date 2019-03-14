@@ -21,7 +21,7 @@ NUM_CLASSES = 13
 BANDS_SIZE = 176
 
 
-def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
+def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints, is_training):
     """Build the model up to where it may be used for inference.
     
     Args:
@@ -39,9 +39,9 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
         conv1_weights = tf.Variable(
             tf.truncated_normal([1, conv1_kernel, 1, conv1_uints],
                                 stddev=1.0 / math.sqrt(float(conv1_uints))),
-            name='weights')
+            name='weights', trainable=is_training)
         conv1_biases = tf.Variable(tf.zeros(conv1_uints),
-                             name='biases')
+                             name='biases', trainable=is_training)
         x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE * conv1_stride, 1])  #这里注意之后邻域变化需要修改band size的值, * 1, 5, 9
         print(dataset.get_shape())
         print(x_data.get_shape())
@@ -68,9 +68,9 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
         fc_weights = tf.Variable(
             tf.truncated_normal([input_uints, fc_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
-            name='weights')
+            name='weights', trainable=is_training)
         fc_biases = tf.Variable(tf.zeros([fc_uints]),
-                             name='biases')
+                             name='biases', trainable=is_training)
         mpool_flat = tf.reshape(mpool, [-1, input_uints])
         #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
         fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + fc_biases)
@@ -87,7 +87,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
         softmax_re = tf.nn.softmax(tf.matmul(fc, softmax_weights) + softmax_biases)
         print('softmax size: hhhhhhhhhhh')
         print(softmax_re.get_shape())
-    return softmax_re # , conv1_weights, conv1_biases, fc_weights, fc_biases, softmax_weights, softmax_biases #, conv1, mpool, fc
+    return softmax_re, fc # , conv1_weights, conv1_biases, fc_weights, fc_biases, softmax_weights, softmax_biases #, conv1, mpool, fc
 
 
 def loss(softmax_re, labels):
