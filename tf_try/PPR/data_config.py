@@ -10,7 +10,7 @@ Config of datasets.
     learning_rate: Learning rate of training.
 """
 
-root = '/media/luo/result/hsi/extracted_data/'
+root = '/media/luo/result/hsi/extracted_normalize_data/'
 result_root = '/media/luo/result/hsi_ppr_result/'
 
 ksc = {

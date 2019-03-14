@@ -23,9 +23,9 @@ flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('dataset_name', 'ksc', 'Name of dataset.')
-flags.DEFINE_string('save_name', 'ksc', 'Save name of dataset.')
+flags.DEFINE_string('save_name', 'ksc_0313', 'Save name of dataset.')
 flags.DEFINE_string('PPR_block', 'cd', 'ppr block method of model.')
-flags.DEFINE_string('ckpt_dir', 'ksc_1107_0_cube/', 'ckpt of model.')
+flags.DEFINE_string('ckpt_dir', 'ksc_0312/', 'ckpt of model.')
 
 
 def placeholder_inputs(batch_size, bands, num_class):
@@ -208,10 +208,26 @@ def run_training():
     # print(np.shape(train_label))
     # print(np.shape(test_data))
     # print(np.shape(test_label))
-    data = sio.loadmat('/media/luo/result/hsi_transfer/ksc/data_4.mat')
+    data = sio.loadmat('/media/luo/result/hsi_transfer/ksc/data_normalize.mat')
+    label = sio.loadmat('/media/luo/result/hsi_transfer/ksc/data.mat')
+    source_train_data = data['source_train_data']
+    source_train_label = np.transpose(label['source_train_label'])
+    source_train_label = dp.onehot_label(source_train_label, num_class)
+    source_test_data = data['source_test_data']
+    source_test_label = np.transpose(label['source_test_label'])
+    source_test_label = dp.onehot_label(source_test_label, num_class)
+    source_data = np.vstack((source_train_data, source_test_data))
+    source_label = np.vstack((source_train_label, source_test_label))
+    target_train_data = data['target_train_data']
+    target_train_label = np.transpose(label['target_train_label'])
+    target_train_label = dp.onehot_label(target_train_label, num_class)
     target_test_data = data['target_test_data']
-    target_test_label = np.transpose(data['target_test_label'])
+    target_test_label = np.transpose(label['target_test_label'])
     target_test_label = dp.onehot_label(target_test_label, num_class)
+    target_data = np.vstack((target_train_data, target_test_data))
+    target_label = np.vstack((target_train_label, target_test_label))
+    print('There are ' + str(len(source_data)) + ' data in source data.')
+    print('There are ' + str(len(target_data)) + ' data in target data.')
 
 
     train_acc_steps = []
@@ -303,9 +319,15 @@ def run_training():
                 train_acc, train_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, train_data,
                                                       train_label, softmax)
                 train_acc_steps.append(train_acc)
+                print('Test Source Data Eval:')
+                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, source_data,
+                                                    source_label, softmax)
+                print('Test Target Data Eval:')
+                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, target_data,
+                                                    target_label, softmax)
                 print('Test Data Eval:')
-                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, target_test_data,
-                                                    target_test_label, softmax)
+                test_acc, test_prediction = do_eval(sess, correct, data_placeholder, label_placeholder, test_data,
+                                                    test_label, softmax)
                 test_loss = sess.run(loss_entroy, feed_dict=feed_dict_test)
                 test_steps.append(step)
                 test_acc_steps.append(test_acc)

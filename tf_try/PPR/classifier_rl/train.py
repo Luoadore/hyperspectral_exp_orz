@@ -18,7 +18,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
-flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
+flags.DEFINE_integer('fc1_uints', 100, 'Number of uints in fully connection layer.')
+flags.DEFINE_integer('fc2_uints', 64, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
@@ -208,11 +209,11 @@ def run_training():
         train_data = data['train_data'][:, bands * 5: bands * 6]
         test_data = data['test_data'][:, bands * 5: bands * 6]
     else:
-        train_data = data['train_data']
-        test_data = data['test_data']
-    train_label = np.transpose(data['train_label'])
+        train_data = data['train_data'][0: 3900]
+        test_data = data['test_data'][0: 3900]
+    train_label = np.transpose(data['train_label'][0: 3900])
 
-    test_label = np.transpose(data['test_label'])
+    test_label = np.transpose(data['test_label'][0: 3900])
     train_label = dp.onehot_label(train_label, num_class)
     test_label = dp.onehot_label(test_label, num_class)
 
@@ -224,6 +225,7 @@ def run_training():
     train_prediction = []
     test_prediction = []
     lr_range_test = []
+    epoch_loss = []
 
     lr = FLAGS.learning_rate
 
@@ -239,8 +241,8 @@ def run_training():
         else:
             model = oc
 
-        softmax = model.inference(data_placeholder, conv1_kernel, FLAGS.conv1_stride, FLAGS.fc_uints,
-                               num_class, bands)
+        softmax = model.inference(data_placeholder, conv1_kernel, FLAGS.conv1_stride, FLAGS.fc1_uints,
+                                  FLAGS.fc2_uints, num_class, bands)
         # Add to the Graph the Ops for loss calculation
         loss_entroy = model.loss(softmax, label_placeholder)
         # Add to the Graph the Ops that calculate and apply gradients
@@ -272,7 +274,7 @@ def run_training():
 
 
         time_sum = 0
-        loss_value = 0
+        loss = 0
         max_lr = 0.1
 
         # Start the training loop
@@ -295,8 +297,10 @@ def run_training():
 
             duration = time.time() - start_time
 
+            loss += loss_value
+
             # Write the summaries and print an overview farily often
-            if step % 100 == 0:
+            if step % 40 == 0:
                 # Print status to stdout
                 print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
                 time_sum = time_sum + duration
@@ -304,9 +308,12 @@ def run_training():
                 summary_str = sess.run(summary_op, feed_dict=feed_dict)
                 summary_writer.add_summary(summary_str, step)
                 summary_writer.flush()
+                epoch_loss.append(loss / 40.0)
+                loss = 0
+
 
             # Save a checkpoint and evaluate the model periodically
-            if (step + 1) % 100 == 0 or (step + 1) == FLAGS.max_steps:
+            if (step + 1) % 40 == 0 or (step + 1) == FLAGS.max_steps:
                 checkpoint_file = os.path.join(train_dir, 'checkpoint')
                 saver.save(sess, checkpoint_file, global_step=step)
                 # data_train_placeholder, label_train_placeholder = placeholder_inputs(len(train_label))
@@ -343,6 +350,7 @@ def run_training():
     sio.savemat(train_dir + '/data.mat', {
     # 'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, FLAGS.num_class), 'train_pos': train_pos,
         # 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, FLAGS.num_class), 'test_pos': test_pos,
+        'epoch_loss': epoch_loss,
         'test_loss': test_loss_steps, 'test_acc': test_acc_steps, 'test_step': test_steps,
         'train_acc': train_acc_steps,  # 'train_fea': train_fea_values, 'test_fea': test_fea_values,
         'train_prediction': train_prediction, 'test_prediction': test_prediction})

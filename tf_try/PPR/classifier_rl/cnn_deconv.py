@@ -14,12 +14,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 import math
-
+"""
 def ppr_block(inp, kernels, stride, bands_size):
     channels = len(kernels)
     out = tf.expand_dims(inp, 1)
     out = tf.expand_dims(out, -1)
-    out = tf.slice(out, [0, 0, bands_size * 5, 1], [-1, 1, bands_size, 1])
     for i in range(channels):
         with tf.name_scope('conv_' + str(i)):
             conv_weights = tf.Variable(
@@ -41,23 +40,66 @@ def ppr_block(inp, kernels, stride, bands_size):
             deconv_biases = tf.Variable(tf.zeros(1),
                                       name='biases')
             deconv = deconv_biases + tf.nn.conv2d_transpose(conv, deconv_weights,
-                                                             output_shape=tf.stack([tf.shape(x_data)[0], 1, bands_size, 1]),
-                                                             strides=[1, stride, stride, 1], padding='VALID')
+                                                            output_shape=tf.shape(x_data),
+                                                            strides=[1, stride, stride, 1], padding='VALID')
+            #deconv = deconv_biases + tf.nn.conv2d_transpose(conv, deconv_weights,
+            #                                                 output_shape=tf.stack([tf.shape(x_data)[0], 1, bands_size, 1]),
+            #                                                 strides=[1, 1, 1, 1], padding='SAME')
 
             print('deconv_shape', deconv.get_shape())
-        """
         if i == 0:
             out = deconv
         else:
             out = tf.concat([out, deconv], 3)
+        # out = tf.concat([out, deconv], 3)
+    print('concat_out_shape', out.get_shape())
+    assert out.get_shape()[3] == channels
+    return out
 """
+
+def ppr_block(inp, kernels, stride, bands_size):
+    channels = len(kernels)
+    out = tf.expand_dims(inp, 1)
+    out = tf.expand_dims(out, -1)
+    """
+    if stride == 9:
+        out = tf.slice(out, [0, 0, bands_size * 5, 0], [-1, 1, bands_size, 1])
+    """
+    print('out_shape', out.get_shape())
+    for i in range(channels):
+        with tf.name_scope('conv_' + str(i)):
+            conv_weights = tf.Variable(
+                tf.truncated_normal([1, kernels[i], 1, 1],
+                                    stddev=1.0 / math.sqrt(float(1))),
+                name='weights')
+            conv_biases = tf.Variable(tf.zeros(1),
+                                       name='biases')
+            x_data = tf.reshape(inp, [-1, 1, bands_size * stride, 1])
+            conv = tf.sigmoid(conv_biases + tf.nn.conv2d(x_data, conv_weights,
+                                                           strides=[1, stride, stride, 1],
+                                                           padding='VALID'))
+            print(conv.get_shape())
+        with tf.name_scope('deconv_' + str(i)):
+            deconv_weights = tf.Variable(
+                tf.truncated_normal([1, kernels[i], 1, 1],
+                                    stddev=1.0 / math.sqrt(float(1))),
+                name='weights')
+            deconv_biases = tf.Variable(tf.zeros(1),
+                                      name='biases')
+            deconv = deconv_biases + tf.nn.conv2d_transpose(conv, deconv_weights,
+                                                             output_shape=tf.shape(x_data),
+                                                             strides=[1, stride, stride, 1], padding='VALID')
+            print('deconv_shape', deconv.get_shape())
+        """
+        if stride == 9:
+            deconv = tf.slice(deconv, [0, 0, bands_size * 5, 0], [-1, 1, bands_size, 1])
+        """
         out = tf.concat([out, deconv], 3)
     print('concat_out_shape', out.get_shape())
     assert out.get_shape()[3] == channels + 1
     return out
 
-
-def inference(dataset, conv1_kernel, conv1_stride, fc_uints, num_class, bands_size):
+def inference(dataset, conv1_kernel, conv1_stride, fc1_uints, fc2_uints, num_class, bands_size):
     """Build the model up to where it may be used for inference.
     
     Args:
@@ -80,28 +122,39 @@ def inference(dataset, conv1_kernel, conv1_stride, fc_uints, num_class, bands_si
                                strides=[1, 1, 2, 1],
                                padding='VALID')
 
-    # fc
-    with tf.name_scope('fc'):
+    # fc1
+    with tf.name_scope('fc1'):
         #input_uints = int((bands_size - conv1_kernel + 1) / 2)
         print('mpool_shape', mpool.get_shape())
         x = mpool.get_shape()[2].value
         y = mpool.get_shape()[3].value
         input_uints = x * y
         fc_weights = tf.Variable(
-            tf.truncated_normal([input_uints, fc_uints],
+            tf.truncated_normal([input_uints, fc1_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
             name='weights')
-        fc_biases = tf.Variable(tf.zeros([fc_uints]),
+        fc_biases = tf.Variable(tf.zeros([fc1_uints]),
                              name='biases')
         mpool_flat = tf.reshape(mpool, [-1, input_uints])
         #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
         fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + fc_biases)
+    """
+    # fc2
+    with tf.name_scope('fc2'):
+        fc_weights = tf.Variable(
+            tf.truncated_normal([fc1_uints, fc2_uints],
+                                stddev=1.0 / math.sqrt(float(input_uints))),
+            name='weights')
+        fc_biases = tf.Variable(tf.zeros([fc2_uints]),
+                                name='biases')
+        fc = tf.sigmoid(tf.matmul(fc1, fc_weights) + fc_biases)
+    """
 
     # softmax regression
     with tf.name_scope('softmax_re'):
         softmax_weights = tf.Variable(
-            tf.truncated_normal([fc_uints, num_class],
-                                stddev=1.0 / math.sqrt(float(fc_uints))),
+            tf.truncated_normal([fc1_uints, num_class],
+                                stddev=1.0 / math.sqrt(float(fc1_uints))),
             name='weights')
         softmax_biases = tf.Variable(tf.zeros([num_class]),
                              name='biases')

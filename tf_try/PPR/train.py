@@ -17,13 +17,13 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
-flags.DEFINE_integer('conv1_stride', 1, 'Stride of conv1.')
+flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
 flags.DEFINE_integer('fc_uints', 100, 'Number of uints in fully connection layer.')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
-flags.DEFINE_integer('neighbor', 1, 'Neighbor of data option, including 0, 4 and 8.')
+flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('dataset_name', 'ksc', 'Name of dataset.')
-flags.DEFINE_string('save_name', 'ksc', 'Save name of dataset.')
+flags.DEFINE_string('save_name', 'ksc_0312', 'Save name of dataset.')
 flags.DEFINE_string('PPR_block', 'cd', 'ppr block method of model.')
 flags.DEFINE_string('ckpt_dir', 'None', 'ckpt of model.')
 
@@ -193,6 +193,7 @@ def run_training():
     bands = data_set['bands']
     num_class = data_set['num_classes']
     data = sio.loadmat(data_set['data_dir'])
+    # data = sio.loadmat('/media/luo/result/hsi_transfer/ksc/data_set.mat')
     if FLAGS.neighbor == 1:
         train_data = data['train_data'][:, bands * 5: bands * 6]
         test_data = data['test_data'][:, bands * 5: bands * 6]
