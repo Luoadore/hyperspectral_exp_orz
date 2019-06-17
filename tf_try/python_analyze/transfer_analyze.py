@@ -15,7 +15,7 @@ def write_xls(col_name, data, root, xls_name):
 
 
 ksc_dir = '/media/luo/result/hsi_transfer/ksc/results/'
-
+"""
 ratio = [20, 18, 15, 12, 10, 8, 5, 3, 2, 1]
 acc = []
 for i, r in enumerate(ratio):
@@ -33,12 +33,51 @@ write_xls(ratio, acc, ksc_dir, 'diff_ratio')
 lr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
 acc = []
 for i, l in enumerate(lr):
-    S = sio.loadmat(ksc_dir + 'lr_test/0320_' + str(l) + '/original_data.mat')
-    T_true = sio.loadmat(ksc_dir + 'lr_test/0320_true_' + str(l) + '/transfer_data.mat')
-    T_false = sio.loadmat(ksc_dir + 'lr_test/0320_false_' + str(l) + '/transfer_data.mat')
+    S = sio.loadmat(ksc_dir + 'lr_test/0326_' + str(l) + '/original_data.mat')
+    T_true = sio.loadmat(ksc_dir + 'lr_test/0326_true_' + str(l) + '/transfer_data.mat')
+    T_false = sio.loadmat(ksc_dir + 'lr_test/0326_false_' + str(l) + '/transfer_data.mat')
     acc_each = [max(S['train_acc'][0]), max(S['source_test_acc'][0]), max(S['target_test_acc'][0]),
                 max(T_true['train_acc'][0]), max(T_true['source_test_acc'][0]), max(T_true['target_test_acc'][0]),
                 max(T_false['train_acc'][0]), max(T_false['source_test_acc'][0]), max(T_false['target_test_acc'][0])]
     acc.append(acc_each)
     print('load different learning rate acc.')
 write_xls(lr, acc, ksc_dir, 'diff_lr')
+
+# base exp (whether transfer)
+results_dir = '/media/luo/result/hsi_transfer/ksc/tf-results/'
+results = ['1st', '2nd', '3rd']
+name = ['s20', 's80', 't20', 't80']
+#  Every row like:
+#  [s20_train, s20_test, s80_train, s80_test, t20_train, t20_test, t80_train, t80_test]
+acc = []
+for i in range(3):
+    each_acc = []
+    for j in range(4):
+        dir = results_dir + 'baseline/' + results[i] + '/ksc_0520_' + name[j] + '/original_data.mat'
+        data = sio.loadmat(dir)
+        each_acc.extend([max(data['train_acc'][0]), max(data['source_test_acc'][0])])
+    acc.append(each_acc)
+    print(acc)
+    print(len(acc), len(acc[0]))
+    print('load base experiment acc.')
+write_xls(results, acc, results_dir, 'base')"""
+
+
+# transfer exp ()
+results_dir = '/media/luo/result/hsi_transfer/ksc/tf-results/'
+results = ['1st', '2nd', '3rd']
+name = ['sfalse', 'strue', 'tfalse', 'ttrue']
+#  Every row like:
+#  [sfalse_train, sfalse_test, strue_train, strue_test, tfalse_train, tfalse_test, ttrue_train, ttrue_test]
+acc = []
+for i in range(3):
+    each_acc = []
+    for j in range(4):
+        dir = results_dir + 'transfer/' + results[i] + '/ksc_0520_' + name[j] + '/transfer_data.mat'
+        data = sio.loadmat(dir)
+        each_acc.extend([max(data['train_acc'][0]), max(data['target_test_acc'][0])])
+    acc.append(each_acc)
+    print(acc)
+    print(len(acc), len(acc[0]))
+    print('load base experiment acc.')
+write_xls(results, acc, results_dir, 'transfer')
