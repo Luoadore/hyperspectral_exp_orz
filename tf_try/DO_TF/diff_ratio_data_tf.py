@@ -54,7 +54,8 @@ if __name__ == '__main__':
     ratio = [18, 15, 12]
     dataset = ksc
     neighbor = 8
-    # scaler, _, _ = mean_std(dataset['data_dir'], dataset['label_dir'], neighbor)
+    scaler, _, _ = mean_std(dataset['data_dir'], dataset['label_dir'], neighbor)
+    divide_data(20, scaler)
 
     """
     for r in ratio:
@@ -62,10 +63,10 @@ if __name__ == '__main__':
         divide_data(r, scaler)
         print('Done.')"""
 
-
+    """
     # different ratio
     for i in range(len(ratio)):
-        """
+
         print('Train S-net: -----------------------------')
 
         p = subprocess.Popen('python train_original.py '
@@ -75,7 +76,7 @@ if __name__ == '__main__':
                              + ' --train_dir ' + ksc['train_dir'] + 'results/0320_' + str(ratio[i]) + '/'
                              + ' --is_training True',
                              shell=True)
-        p.wait()"""
+        p.wait()
 
 
         print('Train T-net: -----------------------------')
@@ -90,7 +91,7 @@ if __name__ == '__main__':
                              shell=True)
         p.wait()
 
-        """
+
         print('All parameters not training:')
         p = subprocess.Popen('python train_transfer_false.py '
                              + '--learning_rate 0.1 '
@@ -99,9 +100,9 @@ if __name__ == '__main__':
                              + ' --ckpt_dir ' + ksc['train_dir'] + 'results/0320_' + str(ratio[i]) + '/'
                              + ' --train_dir ' + ksc['train_dir'] + 'results/0320_false_' + str(ratio[i]) + '/',
                              shell=True)
-        p.wait()"""
+        p.wait()
 
-    """
+
     # different learning rate of 1%
     lr = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
     iters = [20000, 20000, 10000, 10000, 10000, 10000, 5000, 5000]
@@ -112,8 +113,8 @@ if __name__ == '__main__':
         p = subprocess.Popen('python train_original.py '
                              + '--learning_rate 0.1 '
                              + '--max_steps ' + str(iters[i])
-                             + ' --data_name data1.mat'
-                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0320_' + str(lr[i]) + '/'
+                             + ' --data_name data20.mat'
+                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0326_' + str(lr[i]) + '/'
                              + ' --is_training True',
                              shell=True)
         p.wait()
@@ -124,9 +125,9 @@ if __name__ == '__main__':
         p = subprocess.Popen('python train_transfer.py '
                              + '--learning_rate 0.1 '
                              + '--max_steps ' + str(iters[i])
-                             + ' --data_name data1.mat'
-                             + ' --ckpt_dir ' + ksc['train_dir'] + 'results/lr_test/0320_' + str(lr[i]) + '/'
-                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0320_true_' + str(lr[i]) + '/',
+                             + ' --data_name data20.mat'
+                             + ' --ckpt_dir ' + ksc['train_dir'] + 'results/lr_test/0326_' + str(lr[i]) + '/'
+                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0326_true_' + str(lr[i]) + '/',
                              shell=True)
         p.wait()
 
@@ -134,8 +135,8 @@ if __name__ == '__main__':
         p = subprocess.Popen('python train_transfer_false.py '
                              + '--learning_rate 0.1 '
                              + '--max_steps ' + str(iters[i])
-                             + ' --data_name data1.mat'
-                             + ' --ckpt_dir ' + ksc['train_dir'] + 'results/lr_test/0320_' + str(lr[i]) + '/'
-                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0320_false_' + str(lr[i]) + '/',
+                             + ' --data_name data20.mat'
+                             + ' --ckpt_dir ' + ksc['train_dir'] + 'results/lr_test/0326_' + str(lr[i]) + '/'
+                             + ' --train_dir ' + ksc['train_dir'] + 'results/lr_test/0326_false_' + str(lr[i]) + '/',
                              shell=True)
         p.wait()"""

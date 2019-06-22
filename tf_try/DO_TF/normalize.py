@@ -101,6 +101,7 @@ def mean_std(data_file, labels_file, neighbor):
 def normalize_dataset(scaler, train_data, test_data):
     train_data = scaler.transform(train_data)
     test_data = scaler.transform(test_data)
+    print('Normalized.')
     return train_data, test_data
 
 if __name__ == '__main__':

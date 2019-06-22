@@ -1,8 +1,8 @@
-load('/media/luo/result/hsi/extracted_data/KSCdata.mat');
-load('/media/luo/result/hsi_ppr_result/ksc/ksc_0313/data.mat');
-aa = zeros(13,1);
+%load('/media/luo/result/hsi/extracted_data/SAdata.mat');
+load('/media/luo/result/hsi_kernels_r/SA_2/exp_O\data.mat');
+aa = zeros(16,1);
 %a(n) = max(test_acc);
-for i = 0:12
+for i = 0:15
     index = (test_label == i);
     result = test_prediction(index);
     num = sum(index);

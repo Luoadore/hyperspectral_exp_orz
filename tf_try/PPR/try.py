@@ -20,19 +20,19 @@ for n in range(1):
         p.wait()"""
 
 
-    for i in range(3,4):
+    for i in range(3, 4):
         p = subprocess.Popen('python train.py '
                              + '--PPR_block cd '
                              + '--dataset_name ' + dataset[i]
                              + ' --neighbor 8 --conv1_stride 9'
-                             + ' --save_name ' + dataset[i] + '_0327_' + str(n) + '_cube/',
+                             + ' --save_name ' + dataset[i] + '_0318_' + str(n) + '_cube/',
                              shell= True)
         p.wait()
 
-
+"""
 # fine-tuning
-for n in range(1):
-    """
+for n in range(5):
+
     for i in range(4):
 
         p = subprocess.Popen('python train.py '
@@ -43,16 +43,16 @@ for n in range(1):
                              + ' --save_name ' + dataset[i] + '_1118_' + str(n) + '/',
                              shell= True)
         print('--------------------dataset----------------------', dataset[i])
-        p.wait()"""
+        p.wait()
 
 
-    for i in range(4):
+    for i in range(3):
         p = subprocess.Popen('python train.py '
                              + '--PPR_block cd '
                              + '--learning_rate 0.1 '
-                             + '--ckpt_dir ' + dataset[i] + '_0327_' + str(n) + '_cube/'
+                             + '--ckpt_dir ' + dataset[i] + '_0314_' + str(n) + '_cube/'
                              + ' --dataset_name ' + dataset[i]
                              + ' --neighbor 8 --conv1_stride 9'
-                             + ' --save_name ' + dataset[i] + '_0327_finetune_' + str(n) + '_cube/',
+                             + ' --save_name ' + dataset[i] + '_0315_finetune_' + str(n) + '_cube/',
                              shell= True)
-        p.wait()
+        p.wait()"""

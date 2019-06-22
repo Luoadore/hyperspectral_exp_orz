@@ -14,7 +14,7 @@ import scipy.io as sio
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
+flags.DEFINE_integer('max_steps', 5000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 19 * 1, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
@@ -23,8 +23,9 @@ flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', '/media/luo/result/hsi_transfer/ksc/', 'Directory of data file.')
+flags.DEFINE_string('data_name', 'data_normalize.mat', 'Name of data file.')
 flags.DEFINE_string('label_dir', '/media/luo/result/hsi/KSC/KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/0302/', 'The train result save file.')
+flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/0316/', 'The train result save file.')
 flags.DEFINE_boolean('is_training', True, 'Whether the parameters of source net training.')
 
 def placeholder_inputs(batch_size):
@@ -181,14 +182,14 @@ def run_training():
     print('train_data: ' + str(np.min(train_data)))
     """
     # Second method to get data
-    label = sio.loadmat(FLAGS.data_dir + 'data.mat')
-    data = sio.loadmat(FLAGS.data_dir + 'data_normalize.mat')
+    # label = sio.loadmat(FLAGS.data_dir + 'data.mat')
+    data = sio.loadmat(FLAGS.data_dir + FLAGS.data_name)
     train_data = data['source_train_data']
-    train_label = np.transpose(label['source_train_label'])
+    train_label = np.transpose(data['source_train_label'])
     source_test_data = data['source_test_data']
-    source_test_label = np.transpose(label['source_test_label'])
+    source_test_label = np.transpose(data['source_test_label'])
     target_test_data = data['target_test_data']
-    target_test_label = np.transpose(label['target_test_label'])
+    target_test_label = np.transpose(data['target_test_label'])
     train_label = dp.onehot_label(train_label, oc.NUM_CLASSES)
     source_test_label = dp.onehot_label(source_test_label, oc.NUM_CLASSES)
     target_test_label = dp.onehot_label(target_test_label, oc.NUM_CLASSES)
@@ -232,9 +233,7 @@ def run_training():
         summary_writer = tf.summary.FileWriter(FLAGS.train_dir, sess.graph)
 
         # Run the Op to initialize the variables
-        var_list = [['softmax_re/weights'], ['softmax_re/biases']]
-        initfc = tf.variables_initializer(var_list, name='init')
-        sess.run(initfc)
+        sess.run(init)
 
         time_sum = 0
 
@@ -297,7 +296,7 @@ def run_training():
     print('test label: ' + str(dp.decode_onehot_label(test_label, oc.NUM_CLASSES)))
     print('总用时： ' + str(time_sum))"""
 
-    sio.savemat(FLAGS.train_dir + 'data.mat', {
+    sio.savemat(FLAGS.train_dir + 'original_data.mat', {
     # 'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
         # 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
         # 'test_loss': test_loss_steps,

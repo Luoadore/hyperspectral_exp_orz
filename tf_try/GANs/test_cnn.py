@@ -18,7 +18,8 @@ import train_original as to
 def predict(i):
     print('Predicting class ' + str(i) + ' :')
     # load data
-    data_file = '/media/luo/result/hsi-wgan/test/exp_' + str(i) + '/data' + str(i) + '.mat'
+    # data_file = '/media/luo/result/hsi-wgan/test/exp_' + str(i) + '/data' + str(i) + '.mat'
+    data_file = './model/exp_' + str(i) + '/data' + str(i) + '.mat'
     data = sio.loadmat(data_file)
     hsi_data = data['g_sample']
     label_file = '/media/luo/result/hsi_gan_result/KSC/hsi_data' + str(i) + '.mat'
@@ -41,7 +42,8 @@ def predict(i):
 
         acc, prediction = to.do_eval(sess, correct, data_placeholder, label_placeholder, hsi_data, hsi_label,
                                               softmax)
-        sio.savemat('/media/luo/result/hsi_gan_result/KSC/predic_data' + str(i) + '.mat', {'acc': acc, 'prediction': prediction})
+        # sio.savemat('/media/luo/result/hsi_gan_result/KSC/predic_data' + str(i) + '.mat', {'acc': acc, 'prediction': prediction})
+        print(prediction)
         sess.close()
 
 predict(11)

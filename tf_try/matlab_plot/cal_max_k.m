@@ -1,5 +1,5 @@
-cls=cell(16,2);
-for i=1:16
+cls=cell(13,2);
+for i=1:13
     a=aa(i,:);
     index=find(a == max(a));
     cls(i,1) = {max(a)};

@@ -16,9 +16,9 @@ import tensorflow as tf
 import math
 
 # labels
-NUM_CLASSES = 13
+NUM_CLASSES = 9
 # hyperspectral bands
-BANDS_SIZE = 176
+BANDS_SIZE = 103
 
 
 def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
@@ -40,7 +40,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             tf.truncated_normal([1, conv1_kernel, 1, conv1_uints],
                                 stddev=1.0 / math.sqrt(float(conv1_uints))),
             name='weights')
-        biases = tf.Variable(tf.zeros(conv1_uints),
+        conv1_biases = tf.Variable(tf.zeros(conv1_uints),
                              name='biases')
         x_data = tf.reshape(dataset, [-1, 1, BANDS_SIZE * conv1_stride, 1])  #这里注意之后邻域变化需要修改band size的值, * 1, 5, 9
         print(dataset.get_shape())
@@ -48,7 +48,7 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
         #conv1 = tf.nn.relu(biases + tf.nn.conv2d(x_data, weights,
                                         #strides=[1, conv1_stride, conv1_stride, 1],
                                         #padding='VALID'))
-        conv1 = tf.sigmoid(biases + tf.nn.conv2d(x_data, conv1_weights,
+        conv1 = tf.sigmoid(conv1_biases + tf.nn.conv2d(x_data, conv1_weights,
                                         strides=[1, conv1_stride, conv1_stride, 1],
                                         padding='VALID'))
 
@@ -69,11 +69,11 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             tf.truncated_normal([input_uints, fc_uints],
                                 stddev=1.0 / math.sqrt(float(input_uints))),
             name='weights')
-        biases = tf.Variable(tf.zeros([fc_uints]),
+        fc_biases = tf.Variable(tf.zeros([fc_uints]),
                              name='biases')
         mpool_flat = tf.reshape(mpool, [-1, input_uints])
         #fc = tf.nn.relu(tf.matmul(mpool_flat, weights) + biases)
-        fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + biases)
+        fc = tf.sigmoid(tf.matmul(mpool_flat, fc_weights) + fc_biases)
 
     # softmax regression
     with tf.name_scope('softmax_re'):
@@ -81,12 +81,13 @@ def inference(dataset, conv1_uints, conv1_kernel, conv1_stride, fc_uints):
             tf.truncated_normal([fc_uints, NUM_CLASSES],
                                 stddev=1.0 / math.sqrt(float(fc_uints))),
             name='weights')
-        biases = tf.Variable(tf.zeros([NUM_CLASSES]),
+        softmax_biases = tf.Variable(tf.zeros([NUM_CLASSES]),
                              name='biases')
-        softmax_re = tf.nn.softmax(tf.matmul(fc, softmax_weights) + biases)
+        # softmax_re = tf.matmul(fc, softmax_weights) + softmax_biases
+        softmax_re = tf.nn.softmax(tf.matmul(fc, softmax_weights) + softmax_biases)
         print('softmax size: hhhhhhhhhhh')
         print(softmax_re.get_shape())
-    return softmax_re, conv1_weights, fc_weights, softmax_weights, conv1, mpool, fc
+    return softmax_re # , conv1_weights, conv1_biases, fc_weights, fc_biases, softmax_weights, softmax_biases #, conv1, mpool, fc
 
 
 def loss(softmax_re, labels):

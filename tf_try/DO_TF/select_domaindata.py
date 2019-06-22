@@ -280,8 +280,8 @@ def load_data(dataset, datapos, ratio):
     print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
     print('load test: ' + str(len(test_data)) + ', ' + str(len(test_label)))
     #shuffle all the data set
-    #train_data, train_label, train_pos = shuffling2(train_data, train_label, train_pos)
-    #test_data, test_label, test_pos = shuffling2(test_data, test_label, test_pos)
+    train_data, train_label, train_pos = shuffling2(train_data, train_label, train_pos)
+    test_data, test_label, test_pos = shuffling2(test_data, test_label, test_pos)
     # scaler = sp.StandardScaler().fit(train_data)
     # train_data = scaler.transform(train_data)
     # test_data = scaler.transform(test_data)

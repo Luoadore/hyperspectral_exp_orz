@@ -248,14 +248,14 @@ def load_data(dataset, datapos, ratio):
             train_data.append(data)
             # train_data.append(eachclass[i])
             train_label.append(classes)
-            train_pos.append(shuffle_pos[classes][i])
+            train_pos.append(datapos[classes][i])
         for i in range(testingNumber):
             data = eachclass[trainingNumber + i]
             data[data >= 65534] = 0
             test_data.append(data)
             #test_data.append(eachclass[trainingNumber + i])
             test_label.append(classes)
-            test_pos.append(shuffle_pos[classes][trainingNumber + i])
+            test_pos.append(datapos[classes][trainingNumber + i])
 
     print('load train: ' + str(len(train_data)) + ', ' + str(len(train_label)))
     print('load test: ' + str(len(test_data)) + ', ' + str(len(test_label)))

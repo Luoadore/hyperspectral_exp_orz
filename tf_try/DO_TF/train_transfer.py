@@ -13,8 +13,8 @@ import scipy.io as sio
 # Basic model parameters as external flags
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_float('learning_rate', 0.0001, 'Initial learning rate.')
-flags.DEFINE_integer('max_steps', 10000, 'Number of steps to run trainer.')
+flags.DEFINE_float('learning_rate', 0.1, 'Initial learning rate.')
+flags.DEFINE_integer('max_steps', 5000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('conv1_uints', 20, 'Number of uints in convolutional layer.')
 flags.DEFINE_integer('conv1_kernel', 19 * 1, 'Length of kernel in conv1.')
 flags.DEFINE_integer('conv1_stride', 9, 'Stride of conv1.')
@@ -23,10 +23,11 @@ flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('neighbor', 8, 'Neighbor of data option, including 0, 4 and 8.')
 flags.DEFINE_integer('ratio', 80, 'Ratio of the train set in the whole data.')
 flags.DEFINE_string('data_dir', '/media/luo/result/hsi_transfer/ksc/', 'Directory of data file.')
+flags.DEFINE_string('data_name', 'data_normalize.mat', 'Name of data file.')
 flags.DEFINE_string('label_dir', '/media/luo/result/hsi/KSC/KSCGt.mat', 'Directory of label file.')
-flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/0309_False/', 'The train result save file.')
-flags.DEFINE_boolean('is_training', False, 'Whether the parameters of source net training.')
-flags.DEFINE_string('ckpt_dir', '/media/luo/result/hsi_transfer/ksc/results/0302/', 'ckpt of model.')
+flags.DEFINE_string('train_dir', '/media/luo/result/hsi_transfer/ksc/results/0316_True3/', 'The train result save file.')
+flags.DEFINE_boolean('is_training', True, 'Whether the parameters of source net training.')
+flags.DEFINE_string('ckpt_dir', '/media/luo/result/hsi_transfer/ksc/results/0316/', 'ckpt of model.')
 
 def placeholder_inputs(batch_size):
     """Generate palcehold variables to represent the input tensors.
@@ -145,14 +146,14 @@ def target_cnn(fc, fc_uints, classes, is_training):
 
 def run_training():
     # get data
-    label = sio.loadmat(FLAGS.data_dir + 'data.mat')
-    data = sio.loadmat(FLAGS.data_dir + 'data_normalize.mat')
-    train_data = data['source_train_data']
-    train_label = np.transpose(label['target_train_label'])
+    #label = sio.loadmat(FLAGS.data_dir + 'data.mat')
+    data = sio.loadmat(FLAGS.data_dir + FLAGS.data_name)
+    train_data = data['target_train_data']
+    train_label = np.transpose(data['target_train_label'])
     target_test_data = data['target_test_data']
-    target_test_label = np.transpose(label['target_test_label'])
+    target_test_label = np.transpose(data['target_test_label'])
     source_test_data = data['source_test_data']
-    source_test_label = np.transpose(label['source_test_label'])
+    source_test_label = np.transpose(data['source_test_label'])
     train_label = dp.onehot_label(train_label, oc.NUM_CLASSES)
     source_test_label = dp.onehot_label(source_test_label, oc.NUM_CLASSES)
     target_test_label = dp.onehot_label(target_test_label, oc.NUM_CLASSES)
@@ -196,6 +197,7 @@ def run_training():
         # Run the Op to initialize the variables
         sess.run(init)
 
+
         time_sum = 0
 
         if FLAGS.ckpt_dir != 'None':
@@ -204,6 +206,8 @@ def run_training():
             print('Fine tune with', ckpt)
             global_step = tf.train.get_or_create_global_step()
             saver.restore(sess, ckpt)
+
+
 
         # Start the training loop
         for step in range(FLAGS.max_steps):
@@ -257,7 +261,7 @@ def run_training():
 
 
 
-    sio.savemat(FLAGS.train_dir + '_data.mat', {
+    sio.savemat(FLAGS.train_dir + 'transfer_data.mat', {
     # 'train_data': train_data, 'train_label': dp.decode_onehot_label(train_label, oc.NUM_CLASSES), 'train_pos': train_pos,
         # 'test_data': test_data, 'test_label': dp.decode_onehot_label(test_label, oc.NUM_CLASSES), 'test_pos': test_pos,
         # 'test_loss': test_loss_steps,
