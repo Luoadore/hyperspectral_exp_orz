@@ -12,14 +12,14 @@ import skimage.io as skio
 import scipy.io as sio
 
 # 训练集文件
-train_images_idx3_ubyte_file = 'F:/mnist/MNISt_data/train-images.idx3-ubyte'
+train_images_idx3_ubyte_file = '/media/luo/result/RI/MNIST/train-images.idx3-ubyte'
 # 训练集标签文件
-train_labels_idx1_ubyte_file = 'F:/mnist/MNISt_data/train-labels.idx1-ubyte'
+train_labels_idx1_ubyte_file = '/media/luo/result/RI/MNIST/train-labels.idx1-ubyte'
 
 # 测试集文件
-test_images_idx3_ubyte_file = 'F:/mnist/MNISt_data/t10k-images.idx3-ubyte'
+test_images_idx3_ubyte_file = '/media/luo/result/RI/MNIST/t10k-images.idx3-ubyte'
 # 测试集标签文件
-test_labels_idx1_ubyte_file = 'F:/mnist/MNISt_data/t10k-labels.idx1-ubyte'
+test_labels_idx1_ubyte_file = '/media/luo/result/RI/MNIST/t10k-labels.idx1-ubyte'
 
 
 def decode_idx3_ubyte(idx3_ubyte_file):
@@ -169,5 +169,5 @@ def run():
 if __name__ == '__main__':
     img, lab = run()
     for i in range(10000):
-        skio.imsave('F:/mnist/test_data/' + str(i) + '.jpg', img[i] / 255.0)
-    sio.savemat('F:/mnist/test_data/test_label.mat', {'labels': lab})
+        skio.imsave('/media/luo/result/RI/MNIST/test_data/' + str(i) + '.jpg', img[i] / 255.0)
+    sio.savemat('/media/luo/result/RI/MNIST/test_data/test_label.mat', {'labels': lab})
